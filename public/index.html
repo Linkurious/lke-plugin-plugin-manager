@@ -1,0 +1,96 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+    <meta charset="utf-8">
+    <title>Data-table plugin</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="apple-touch-icon" href="public/icon.png">
+
+    <link rel="stylesheet" href="./css/tabulator.min.css">
+    <link rel="stylesheet" href="./css/main.css">
+
+    <base href="/">
+
+    <meta name="theme-color" content="#fafafa">
+</head>
+
+<body>
+
+<!--------------------Loader-------------------->
+<div class="loader__curtain" id="loader">
+    <div class="loader__container" id="loading">
+        <div class="progress_spinner spinner" id="spinner"></div>
+        <div class="loader__title">Processing your request…</div>
+    </div>
+    <!-- Error -->
+    <div class="loader__container hide" id="error">
+        <div class="loader__title" id="error_description"></div>
+    </div>
+</div>
+
+<!--------------------container-------------------->
+<div class="container hide" id="container">
+    <div class="container__card">
+        <!--------------------Header-------------------->
+        <div id="table_title" class="table__title"></div>
+        <div id="item_type" class="table__item-type"></div>
+        <div id="item_count" class="table__item-count"></div>
+        <div class="warning hide" id="warning">
+            <img class="warning__icon" src="img/Outlined _ AV _ not_interested.png" alt="warning"/>
+            <span id="warning_text"></span>
+
+        </div>
+        <div class="button__container">
+            <button class="btn btn__secondary" id="button-edit">EDIT COLUMNS</button>
+            <button class="btn btn__primary" id="button-export">EXPORT TO CSV</button>
+        </div>
+
+        <!--------------------Table content-------------------->
+        <div id="table" class="table--container"></div>
+        <!-------------------- Pagination-------------------->
+        <div class="pagination" id="pagination">
+            <div class="pagination__details" id="pagination-details"></div>
+            <div class="pagination-action">
+                <button id="pagination-first" class="btn__secondary btn">FIRST</button>
+                <button id="pagination-prev" class="btn__secondary pagination__button btn">PREV</button>
+                <button id="pagination-page" class="btn__secondary pagination__button btn__page"></button>
+                <button id="pagination-next" class="btn__secondary pagination__button btn">NEXT</button>
+                <button id="pagination-last" class="btn__secondary pagination__button btn">LAST</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--------------------modal-------------------->
+<div id="modal" class="modal">
+    <div class="modal__content">
+        <div class="modal__header">
+            <div class="modal__title">TABLE COLUMNS</div>
+            <span id="modal_close">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" class="stroke">
+          <path d="M61.21 60.5l-52-52m52 0l-52 52"></path>
+        </svg>
+      </span>
+        </div>
+        <div class="modal__description">Select the columns to display in the table.</div>
+        <div class="column-list" id="column-list">
+
+        </div>
+        <div class="modal__footer">
+            <button class="btn btn__secondary margin-right__4" id="cancel">CANCEL</button>
+            <button class="btn btn__primary" id="confirm">CONFIRM</button>
+        </div>
+
+    </div>
+</div>
+
+<!--------------------Script-------------------->
+<script src="./js/vendor/tabulator.min.js"></script>
+<script src="./js/main.js"></script>
+
+</body>
+
+</html>

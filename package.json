@@ -1,23 +1,23 @@
 {
-  "name": "@linkurious/lke-plugin-data-table",
-  "version": "1.0.5",
-  "description": "Data-table plugin for Linkurious Enterprise",
+  "name": "@linkurious/lke-plugin-plugin-manager",
+  "version": "0.0.1",
+  "description": "plugin-manager plugin for Linkurious Enterprise",
   "main": "index.js",
-  "homepage": "https://github.com/Linkurious/lke-plugin-data-table#readme",
+  "homepage": "https://github.com/Linkurious/lke-plugin-plugin-manager#readme",
   "bugs": {
-    "url": "https://github.com/Linkurious/lke-plugin-data-table/issues"
+    "url": "https://github.com/Linkurious/lke-plugin-plugin-manager/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Linkurious/lke-plugin-data-table.git"
+    "url": "git+https://github.com/Linkurious/lke-plugin-plugin-manager.git"
   },
   "author": "Linkurious",
   "scripts": {
     "lint": "eslint --fix  .",
     "lint:ci-deactivated": "eslint -f checkstyle -o reports/checkstyle.xml  .",
-    "build": "npm pack && gunzip -qf -c linkurious-lke-plugin-data-table-$(cat .version).tgz > lke-plugin-data-table.lke",
+    "build": "npm pack && gunzip -qf -c linkurious-lke-plugin-plugin-manager-$(cat .version).tgz > lke-plugin-plugin-manager.lke",
     "plugin:tar": "scripts/postpack.js",
-    "upload": "gh release create \"v$(cat .version)\" lke-plugin-data-table.lke",
+    "upload": "gh release create \"v$(cat .version)\" lke-plugin-plugin-manager.lke",
     "bump:patch": "bump2version patch && npm version --no-git-tag-version patch",
     "bump:minor": "bump2version minor && npm version --no-git-tag-version minor",
     "bump:major": "bump2version major && npm version --no-git-tag-version major"

@@ -2,7 +2,7 @@
 
 lkeSubReleaseJob {
   // General
-  projectName = "linkurious/lke-plugin-data-table"
+  projectName = "linkurious/lke-plugin-plugin-manager"
 
   releasing = false
 }

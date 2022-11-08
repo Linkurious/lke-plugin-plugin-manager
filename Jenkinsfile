@@ -2,7 +2,7 @@
 
 nodeJob {
   // General
-  projectName = "linkurious/lke-plugin-data-table"
+  projectName = "linkurious/lke-plugin-plugin-manager"
   runUnitTests = false
   runE2eTests = false
 
@@ -10,7 +10,7 @@ nodeJob {
 
   //static asset upload
   runPrivateNpmPublish = false
-  binaries = ["lke-plugin-data-table.lke"]
+  binaries = ["lke-plugin-plugin-manager.lke"]
   groupId = 'com.linkurious.plugins'
 
 }

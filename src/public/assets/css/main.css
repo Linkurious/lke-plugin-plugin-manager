@@ -1,0 +1,12 @@
+body {
+  background: #eee;
+}
+
+.none {
+  display: none !important;
+}
+
+.container {
+  min-width: 300px;
+  max-width: 800px;
+}

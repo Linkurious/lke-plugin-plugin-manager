@@ -1,10 +1,11 @@
 {
   "name": "plugin-manager",
-  "version": "0.0.1",
+  "version": "$npm_package_version",
+  "linkuriousVersion": "3.1.0",
   "pluginApiVersion": "1.0.0",
   "publicRoute": "public",
   "singlePageAppIndex": "index.html",
   "backendFiles": [
-    "backend/routeHandler.js"
+    "backend/routes.js"
   ]
 }

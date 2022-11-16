@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/public_tmp",
+    "tsBuildInfoFile": "../../dist/buildcache/public.tsbuildinfo",
+    "declarationDir": "../../dist/public_tmp"
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}

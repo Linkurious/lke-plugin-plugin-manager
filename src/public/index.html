@@ -3,7 +3,7 @@
 
 <head>
   <meta />
-  <title>LKE Plugin Template</title>
+  <title>Linkurious Enterprise Plugin Manager</title>
 
   <base href="/">
 
@@ -14,6 +14,78 @@
 <body>
   <div class="container my-5">
     <h1>Linkurious Enterprise Plugin Manager</h1>
+  </div>
+
+  <div class="container my-5">
+    <h2>Upload a plugin</h2>
+    <form enctype="multipart/form-data" action="api/upload" method="post">
+      <input id="plugin" name="plugin" type="file" />
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+  <div class="container my-5">
+    <h2>Handle a plugin</h2>
+    <p>Security check: ../.pluginCache/plugin-manager</p>
+    <input id="plugin_name" type="text" value="plugin-manager-0.0.1.lke" />
+    <button id="handle_plugin_btn" type="button">Execute</button>
+    <button id="handle_plugin_clear_btn" type="button">Clear</button>
+    <fieldset>
+      <legend>Select a method</legend>
+      <div>
+        <input type="radio" id="manifest" name="plugin_action" value="manifest" checked>
+        <label for="manifest">Get manifest</label>
+      </div>
+      <div>
+        <input type="radio" id="disable" name="plugin_action" value="disable">
+        <label for="disable">Disable</label>
+      </div>
+      <div>
+        <input type="radio" id="enable" name="plugin_action" value="enable">
+        <label for="enable">Enable</label>
+      </div>
+      <div>
+        <input type="radio" id="restore" name="plugin_action" value="restore">
+        <label for="restore">Restore</label>
+      </div>
+      <div>
+        <input type="radio" id="delete" name="plugin_action" value="delete">
+        <label for="delete">Delete</label>
+      </div>
+    </fieldset>
+    <pre id="plugin_handle_answer">
+      <code>
+      </code>
+    </pre>
+  </div>
+
+  <div class="container my-5">
+    <h2>Show manifest</h2>
+    <pre id="plugin_manifest">
+      <code>
+      </code>
+    </pre>
+  </div>
+
+  <div class="container my-5">
+    <h2>List of ACTIVE plugins</h2>
+    <pre id="active_plugins">
+      <code>
+      </code>
+    </pre>
+  </div>
+  <div class="container my-5">
+    <h2>List of DISABLED plugins</h2>
+    <pre id="disabled_plugins">
+      <code>
+      </code>
+    </pre>
+  </div>
+  <div class="container my-5">
+    <h2>List of BACKEDUP plugins</h2>
+    <pre id="backedup_plugins">
+      <code>
+      </code>
+    </pre>
   </div>
 
   <!--------------------Scripts-------------------->

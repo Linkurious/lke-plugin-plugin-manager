@@ -24,3 +24,16 @@ export async function parseLinkuriousAPI<
 
   return result;
 }
+
+/*
+ * Apply template format for logging
+ */
+export function loggerFormatter(func: (...data: any[]) => void): (...data: any[]) => void {
+  const newFunction = (...args: any[]) => {
+    const newArgs = Array.from(args);
+    newArgs.unshift(new Date().toISOString(), "-");
+    func.apply(console, <[any?, ...any[]]>newArgs);
+  };
+
+  return newFunction;
+}

@@ -1,5 +1,5 @@
 import { Manifest, PluginConfig, PluginRouteOptions } from "../@types/plugin";
-import { parseLinkuriousAPI } from "./shared";
+import { loggerFormatter, parseLinkuriousAPI } from "./shared";
 import asyncHandler from "express-async-handler";
 import fs from "fs";
 import path from "path";
@@ -34,6 +34,12 @@ async function getListOfPlugins(folder: string = PLUGIN_FOLDER): Promise<Record<
 }
 
 export = async function configureRoutes(options: PluginRouteOptions<PluginConfig>): Promise<void> {
+
+  console.log = loggerFormatter(console.log);
+  console.warn = loggerFormatter(console.warn);
+  console.info = loggerFormatter(console.info);
+  console.error = loggerFormatter(console.error);
+  console.debug = loggerFormatter(console.debug);
 
   const selfParser = new PluginParser(".");
   if (!await selfParser.parse()) {

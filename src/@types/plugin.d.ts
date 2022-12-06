@@ -7,9 +7,8 @@ interface PluginBaseConfig {
   debugPort?: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PluginConfig extends PluginBaseConfig {
-  // Your custom configurations
+  maxUploadSizeMb: number;
 }
 
 export interface PluginRouteOptions<CustomPluginConfig extends PluginConfig> {

@@ -9,9 +9,8 @@ import { PluginParser } from "./PluginParser";
 import { glob } from "glob";
 
 const PLUGIN_FOLDER = path.join("..", "..", "plugins");
-const DISABLED_PLUGIN_FOLDER = path.join(PLUGIN_FOLDER, "disabled");
-const BACKUP_PLUGIN_FOLDER = path.join(PLUGIN_FOLDER, "old");
-// const PLUGIN_SIZE_LIMIT = 200 * 1024 * 1024;
+const DISABLED_PLUGIN_FOLDER = path.join(PLUGIN_FOLDER, ".disabled");
+const BACKUP_PLUGIN_FOLDER = path.join(PLUGIN_FOLDER, ".old");
 
 /**
  * Get the list of `*.lke` plugins (files or folders)
@@ -33,6 +32,19 @@ async function getListOfPlugins(folder: string = PLUGIN_FOLDER): Promise<Record<
   return plugins;
 }
 
+/**
+ * Validate the plugin configuration parameters and add eventual default values.
+ * Terminate the plugin in case of errors.
+ */
+function validateParameters(config: any): void {
+  if (config.maxUploadSizeMb == null)
+    config.maxUploadSizeMb = 20;
+  else if (typeof config.maxUploadSizeMb !== "number") {
+    console.error("Invalid `maxUploadSizeMb` configuration parameter. It should be a number.");
+    process.exit(1);
+  }
+}
+
 export = async function configureRoutes(options: PluginRouteOptions<PluginConfig>): Promise<void> {
 
   console.log = loggerFormatter(console.log);
@@ -41,6 +53,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   console.error = loggerFormatter(console.error);
   console.debug = loggerFormatter(console.debug);
 
+  validateParameters(options.configuration);
+
   const selfParser = new PluginParser(".");
   if (!await selfParser.parse()) {
     console.error("Failed to read manifest:", selfParser.errorMessage);
@@ -48,7 +62,11 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   }
 
   options.router.use(express.json());
-  options.router.use(fileUpload({ createParentPath: true, useTempFiles: false }));
+  options.router.use(fileUpload({
+    createParentPath: true,
+    useTempFiles: true,
+    limits: { fileSize: options.configuration.maxUploadSizeMb * 1024 * 1024 }
+  }));
 
   // Create local auxiliary folders
   if (!fs.existsSync(DISABLED_PLUGIN_FOLDER))
@@ -117,12 +135,13 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
       //   return;
       // }
 
-      const pluginParser = new PluginParser(plugin.data);
-      // const pluginStream = fs.createReadStream(plugin.tempFilePath);
-      if (await pluginParser.parse()) {
-        console.debug(pluginParser.manifest);
-        console.debug(plugin.name, pluginParser.normalizedName);
+      if (plugin.truncated) {
+        res.status(400).send({ message: "Plugin too big! Increase the `maxUploadSizeMb` configuration parameter." });
+        return;
+      }
 
+      const pluginParser = new PluginParser(fs.createReadStream(plugin.tempFilePath));
+      if (await pluginParser.parse()) {
         if (pluginParser.manifest!.name === selfParser.manifest!.name) {
           res.status(400).send({ message: "Impossible to operate on the Plugin Manager!" });
         }

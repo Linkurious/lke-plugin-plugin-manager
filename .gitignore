@@ -6,6 +6,14 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+**/.idea
+.idea
+
+*.lke
+
+# our own files
+**.lke
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -24,6 +32,9 @@ coverage
 
 # nyc test coverage
 .nyc_output
+
+reports
+.npmrc
 
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
@@ -103,12 +114,8 @@ dist
 # TernJS port file
 .tern-port
 
-# Mac OS
-.DS_store
-
-# VS Code
-.vscode
-
-# Project
+.DS_STORE
+*.private.*
+builds/
+.vscode/
 *.cookie
-.npmrc

@@ -1,170 +1,60 @@
 module.exports = {
-  "env": {
-    "browser": false,
-    "node": true
-  },
-  "extends": [
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking"
+  'parser': '@typescript-eslint/parser',
+  'extends': [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/eslint-recommended',
+    'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
+    'plugin:@typescript-eslint/recommended-requiring-type-checking',
+    'plugin:import/errors',
+    'plugin:import/warnings',
+    'prettier/@typescript-eslint', // Uses eslint-config-prettier to disable ESLint rules from @typescript-eslint/eslint-plugin that would conflict with prettier
+    'plugin:prettier/recommended' // Enables eslint-plugin-prettier and displays prettier errors as ESLint errors. Make sure this is always the last configuration in the extends array.
   ],
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "project": ["tsconfig.json", "src/**/tsconfig.json"],
-    "ecmaVersion": 6,
-    "sourceType": "module",
-    "ecmaFeatures": {
-      "jsx": true
-    }
+  'parserOptions': {
+    'ecmaVersion': 2017,
+    'sourceType': 'module',
+    'project': './tsconfig.json'
   },
-  "plugins": [
-    "@typescript-eslint"
-  ],
-  "settings": {
-  },
-  "rules": {
-    "@typescript-eslint/array-type": [
-      "error",
-      {
-        "default": "array"
-      }
-    ],
-    "@typescript-eslint/ban-types": [
-      "error",
-      {
-        "types": {
-          "Object": {
-            "message": "Avoid using the `Object` type. Did you mean `object`?"
-          },
-          "Function": {
-            "message": "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."
-          },
-          "Boolean": {
-            "message": "Avoid using the `Boolean` type. Did you mean `boolean`?"
-          },
-          "Number": {
-            "message": "Avoid using the `Number` type. Did you mean `number`?"
-          },
-          "String": {
-            "message": "Avoid using the `String` type. Did you mean `string`?"
-          },
-          "Symbol": {
-            "message": "Avoid using the `Symbol` type. Did you mean `symbol`?"
-          }
-        }
-      }
-    ],
-    "@typescript-eslint/dot-notation": "error",
-    "@typescript-eslint/member-delimiter-style": [
-      "error",
-      {
-        "multiline": {
-          "delimiter": "semi",
-          "requireLast": true
-        },
-        "singleline": {
-          "delimiter": "semi",
-          "requireLast": false
-        }
-      }
-    ],
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-parameter-properties": "off",
-    "@typescript-eslint/no-unused-expressions": "error",
-    "@typescript-eslint/no-use-before-define": ["error", { "functions": true, "classes": false }],
-    "@typescript-eslint/no-unused-vars": ["warn", { "vars": "all", "args": "after-used", "ignoreRestSiblings": false, "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/prefer-for-of": "error",
-    "@typescript-eslint/prefer-function-type": "error",
-    "@typescript-eslint/quotes": [
-      "error",
-      "double",
-      {
-        "avoidEscape": true
-      }
-    ],
-    "@typescript-eslint/semi": [
-      "error",
-      "always"
-    ],
-    "@typescript-eslint/triple-slash-reference": [
-      "error",
-      {
-        "path": "always",
-        "types": "prefer-import",
-        "lib": "always"
-      }
-    ],
-    "@typescript-eslint/unified-signatures": "error",
-    "camelcase": "error",
-    "comma-dangle": "off",
-    "complexity": "off",
-    "constructor-super": "error",
-    "eqeqeq": [
-      "error",
-      "smart"
-    ],
-    "guard-for-in": "error",
-    "id-blacklist": [
-      "error",
-      "any",
-      "Number",
-      "number",
-      "String",
-      "string",
-      "Boolean",
-      "boolean",
-      "Undefined",
-      "undefined"
-    ],
-    "id-match": "error",
-    "max-classes-per-file": [
-      "error",
-      1
-    ],
-    "new-parens": "error",
-    "no-bitwise": "error",
-    "no-caller": "error",
-    "no-cond-assign": "error",
-    "no-console": "off",
-    "no-debugger": "error",
-    "no-empty": [
-      "error",
-      {
-        "allowEmptyCatch": true
-      }
-    ],
-    "no-eval": "error",
-    "no-fallthrough": "off",
-    "no-invalid-this": "off",
-    "no-new-wrappers": "error",
-    "no-shadow": [
-      "error",
-      {
-        "hoist": "all"
-      }
-    ],
-    "no-throw-literal": "error",
-    "no-trailing-spaces": "warn",
-    "no-undef-init": "error",
-    "no-underscore-dangle": "error",
-    "no-unsafe-finally": "error",
-    "no-unused-labels": "error",
-    "object-shorthand": "error",
-    "one-var": [
-      "error",
-      "never"
-    ],
-    "radix": "error",
-    "spaced-comment": [
-      "error",
-      "always",
-      {
-        "markers": [
-          "/"
-        ]
-      }
-    ],
-    "use-isnan": "error",
-    "valid-typeof": "off"
+  'rules': {
+    'eqeqeq': ['error'], // Requires === or !== in place of == or !=
+    'curly': ['error'], // Requires curly braces when a block contains only one statement
+    //'@typescript-eslint/no-explicit-any': ['error'], // Don't allow any usage of 'any'
+    '@typescript-eslint/no-empty-interface': ['off'], // Allows empty interfaces
+    '@typescript-eslint/ban-ts-comment': ['off'], // Allows ts-ignore to be used when needed
+    'object-shorthand': ['error', 'never'], // Disallows shorthand object literal
+    '@typescript-eslint/ban-ts-ignore': ['off'], // Allows @ts-ignore
+    '@typescript-eslint/interface-name-prefix': ['off'], // Allows interfaces prefixed with I
+    '@typescript-eslint/no-non-null-assertion': ['off'], // Allows non-null assertion
+    '@typescript-eslint/no-empty-function': ['off'], // Allows empty functions
+    '@typescript-eslint/restrict-plus-operands': ['off'], // Allows plus operator to be used between different types
+    '@typescript-eslint/require-await': ['off'], // Allows async without await
+    'import/no-unresolved': ['off'], // Disable non working rule
+    'import/order': ['error', { 'newlines-between': 'always' }], // Orders imports by ['builtin', 'external', 'parent', 'sibling', 'index']
+
+    // Server specific
+    '@typescript-eslint/no-unnecessary-type-assertion': ['off'], // eslint removes necessary assertions and breaks compilation
+
+    // Downgraded to warnings
+    '@typescript-eslint/ban-types': ['warn'],
+    '@typescript-eslint/restrict-template-expressions': ['warn'],
+    '@typescript-eslint/unbound-method': ['warn'],
+    'no-useless-escape': ['warn'],
+    'no-prototype-builtins': ['warn'],
+    'require-atomic-updates': ['warn'],
+
+    // TODO to investigate if to promote to errors
+    '@typescript-eslint/no-unsafe-assignment': ['warn'],
+    '@typescript-eslint/no-unsafe-member-access': ['warn'],
+    '@typescript-eslint/no-unsafe-call': ['warn'],
+    '@typescript-eslint/no-misused-promises': ['warn'],
+    '@typescript-eslint/prefer-regexp-exec': ['warn'],
+    '@typescript-eslint/await-thenable': ['warn'],
+    '@typescript-eslint/no-unsafe-return': ['warn'],
+    '@typescript-eslint/no-floating-promises': ['warn'],
+    'no-case-declarations': ['warn'],
+
+    // TODO remove both from downgraded to warnings
+    '@typescript-eslint/no-explicit-any': ['warn'],
+    '@typescript-eslint/no-var-requires': ['warn']
   }
 };

@@ -1,4 +1,4 @@
-import * as lke from "@linkurious/rest-client";
+import * as LKE from "@linkurious/rest-client";
 
 /*
  * parseLinkuriousAPI
@@ -6,13 +6,13 @@ import * as lke from "@linkurious/rest-client";
  * Generic error handling for calling Linkurious Enterprise APIs
  */
 export async function parseLinkuriousAPI<
-  T extends lke.Response<unknown>,
+  T extends LKE.Response<unknown>,
   E,
-  Body = Exclude<T, lke.ErrorResponses<lke.LkErrorKey>>["body"]
+  Body = Exclude<T, LKE.ErrorResponses<LKE.LkErrorKey>>["body"]
 >(
   apiPromise: Promise<T>,
-  transform?: (body: Exclude<T, lke.ErrorResponses<lke.LkErrorKey>>["body"]) => E,
-  errorHandler: (e: lke.Response<lke.LkError>) => E = e => { throw e; }
+  transform?: (body: Exclude<T, LKE.ErrorResponses<LKE.LkErrorKey>>["body"]) => E,
+  errorHandler: (e: LKE.Response<LKE.LkError>) => E = e => { throw e; }
 ): Promise<Body extends E ? Body : E> {
   let result: Body extends E ? Body : E;
   const apiResponse = await apiPromise;
@@ -20,7 +20,7 @@ export async function parseLinkuriousAPI<
   if (apiResponse.isSuccess())
     result = (transform ? transform(apiResponse.body as Body) : apiResponse.body) as Body extends E ? Body : E;
   else
-    result = errorHandler(apiResponse as lke.Response<lke.LkError>) as Body extends E ? Body : E;
+    result = errorHandler(apiResponse as LKE.Response<LKE.LkError>) as Body extends E ? Body : E;
 
   return result;
 }

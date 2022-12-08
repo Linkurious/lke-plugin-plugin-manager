@@ -10,32 +10,39 @@ window.addEventListener("load", () => {
     const method = action === "manifest" ? "GET" : action === "delete" ? "DELETE" : "PATCH";
     const urlAction = ["manifest", "delete"].includes(action) ? "" : action;
 
-    fetch(`api/plugin/${encodeURIComponent(name)}/${urlAction}`, { method })
-      .then((response) => response.json())
+    void fetch(`api/plugin/${encodeURIComponent(name)}/${urlAction}`, { method })
+      .then((response) => {
+        if (response.status === 204) {
+          return { status: "ok" };
+        }
+        else {
+          return response.json();
+        }
+      })
       .then((data) => {
         document.getElementById("plugin_handle_answer")!.firstChild!.textContent = JSON.stringify(data, null, 2);
       });
   };
 
-  fetch("api/manifest")
+  void fetch("api/manifest")
     .then((response) => response.json())
     .then((data) => {
       document.getElementById("plugin_manifest")!.firstChild!.textContent = JSON.stringify(data, null, 2);
     });
 
-  fetch("api/plugins")
+  void fetch("api/plugins")
     .then((response) => response.json())
     .then((data) => {
       document.getElementById("active_plugins")!.firstChild!.textContent = JSON.stringify(data, null, 2);
     });
 
-  fetch("api/plugins?filter=disabled")
+  void fetch("api/plugins?filter=disabled")
     .then((response) => response.json())
     .then((data) => {
       document.getElementById("disabled_plugins")!.firstChild!.textContent = JSON.stringify(data, null, 2);
     });
 
-  fetch("api/plugins?filter=backedup")
+  void fetch("api/plugins?filter=backedup")
     .then((response) => response.json())
     .then((data) => {
       document.getElementById("backedup_plugins")!.firstChild!.textContent = JSON.stringify(data, null, 2);

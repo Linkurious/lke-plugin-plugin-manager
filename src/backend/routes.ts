@@ -1,42 +1,15 @@
-import { Manifest, PluginConfig, PluginRouteOptions } from "../@types/plugin";
+import { PluginConfig, PluginRouteOptions } from "../@types/plugin";
 import { loggerFormatter, parseLinkuriousAPI } from "./shared";
-import asyncHandler from "express-async-handler";
-import fs from "fs";
-import path from "path";
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import fileUpload from "express-fileupload";
-import { PluginParser } from "./PluginParser";
-import { glob } from "glob";
-
-const PLUGIN_FOLDER = path.join("..", "..", "plugins");
-const DISABLED_PLUGIN_FOLDER = path.join(PLUGIN_FOLDER, ".disabled");
-const BACKUP_PLUGIN_FOLDER = path.join(PLUGIN_FOLDER, ".old");
-
-/**
- * Get the list of `*.lke` plugins (files or folders)
- *
- * @param folder: the folder in the FileSystem to scan
- * @returns a map of file names and their manifest
- */
-async function getListOfPlugins(folder: string = PLUGIN_FOLDER): Promise<Record<string, Manifest>> {
-  const plugins = {} as Record<string, Manifest>;
-  for (const plugin of glob.sync(path.join(folder, "*.lke"))) {
-    const fileName = path.basename(plugin);
-    const pluginParser = new PluginParser(plugin);
-    if (await pluginParser.parse()) {
-      plugins[fileName] = pluginParser.manifest!;
-    }
-    else
-      console.warn(`Found ${fileName} but it's not a valid plugin`);
-  }
-  return plugins;
-}
+import { PluginManager } from "./PluginManager";
+import { ParameterExceptionPluginError, PluginError, UnauthorizedPluginError, UploadSizePluginError } from "./exceptions";
 
 /**
  * Validate the plugin configuration parameters and add eventual default values.
  * Terminate the plugin in case of errors.
  */
-function validateParameters(config: any): void {
+function validateParameters(config: Partial<PluginConfig>): void {
   if (config.maxUploadSizeMb == null)
     config.maxUploadSizeMb = 20;
   else if (typeof config.maxUploadSizeMb !== "number") {
@@ -54,12 +27,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   console.debug = loggerFormatter(console.debug);
 
   validateParameters(options.configuration);
-
-  const selfParser = new PluginParser(".");
-  if (!await selfParser.parse()) {
-    console.error("Failed to read manifest:", selfParser.errorMessage);
-    process.exit(1);
-  }
+  const manager = new PluginManager();
+  await manager.initialize();
 
   options.router.use(express.json());
   options.router.use(fileUpload({
@@ -68,13 +37,7 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
     limits: { fileSize: options.configuration.maxUploadSizeMb * 1024 * 1024 }
   }));
 
-  // Create local auxiliary folders
-  if (!fs.existsSync(DISABLED_PLUGIN_FOLDER))
-    fs.mkdirSync(DISABLED_PLUGIN_FOLDER);
-  if (!fs.existsSync(BACKUP_PLUGIN_FOLDER))
-    fs.mkdirSync(BACKUP_PLUGIN_FOLDER);
-
-  options.router.use(asyncHandler(async (req, res, next) => {
+  options.router.use(async (req, res, next) => {
     const restClient = options.getRestClient(req);
     try {
       /*
@@ -84,82 +47,65 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
         restClient.auth.getCurrentUser(),
         body => {
           if (!body.groups.find(g => g.name === "admin"))
-            throw new Error("Unauthorized");
+            throw new UnauthorizedPluginError(["admin"]);
         }
       );
       next();
     }
     catch (e) {
-      console.log(e);
-      res.contentType("application/json");
-      if (e instanceof Error)
-        res.status(500).json({ "error": e.name, "message": e.message });
+      let parsedError: PluginError;
+      if (!(e instanceof PluginError)) {
+        parsedError = PluginError.parseError(e);
+        console.error(`${parsedError.name} - ${parsedError.message}. ${parsedError.stack}`);
+      }
       else
-        res.status(500).json(JSON.stringify(e));
+        parsedError = e;
+
+      res.status(parsedError.getHttpResponseCode()).json({ status: "error", error: parsedError.name, message: parsedError.message });
     }
-  }));
+  });
+
+  function handleRequest(fun: (req: Request, res: Response, next?: NextFunction) => Promise<unknown | void>): (req: Request, res: Response) => void {
+    return async (req, res) => {
+      try {
+        const resp = await fun(req, res);
+
+        if (resp == null)
+          res.sendStatus(204);
+        else
+          res.status(200).json(resp);
+      }
+      catch (e) {
+        let parsedError: PluginError;
+        if (!(e instanceof PluginError)) {
+          parsedError = PluginError.parseError(e);
+          console.error(`${parsedError.name} - ${parsedError.message}. ${parsedError.stack}`);
+        }
+        else
+          parsedError = e;
+
+        res.status(parsedError.getHttpResponseCode()).json({ status: "error", error: parsedError.name, message: parsedError.message });
+      }
+    };
+  }
 
   /**
    * Get the manigest of this plugin
    */
-  options.router.get("/manifest", (_req, res) => {
-    res.json(selfParser.manifest);
-  });
-
+  options.router.get("/manifest", handleRequest(async (_req, _res) => {
+    return await manager.getPluginManagerManifest();
+  }));
 
   /**
    * Upload a plugin (either for install or update)
    *
    * @param plugin: the file
    */
-   options.router.post("/upload", asyncHandler(async (req, res) => {
-    try {
-      if (!req.files) {
-        res.status(400).send({ message: "Upload a single `plugin` file please!" });
-        return;
-      }
+  options.router.post("/upload", handleRequest(async (req, _res) => {
+    if (!req.files || !req.files.plugin || Array.isArray(req.files.plugin))
+      throw new UploadSizePluginError();
 
-      if (!req.files.plugin) {
-        res.status(400).send({ message: "Upload a single `plugin` file please!" });
-        return;
-      }
-
-      if (Array.isArray(req.files.plugin)) {
-        res.status(400).send({ message: "Multi file upload is not supported!" });
-        return;
-      }
-
-      const plugin = req.files.plugin;
-      // if (path.extname(plugin.name) !== ".lke") {
-      //   res.status(400).send({ message: "File not supported, upload a *.lke file!" });
-      //   return;
-      // }
-
-      if (plugin.truncated) {
-        res.status(400).send({ message: "Plugin too big! Increase the `maxUploadSizeMb` configuration parameter." });
-        return;
-      }
-
-      const pluginParser = new PluginParser(fs.createReadStream(plugin.tempFilePath));
-      if (await pluginParser.parse()) {
-        if (pluginParser.manifest!.name === selfParser.manifest!.name) {
-          res.status(400).send({ message: "Impossible to operate on the Plugin Manager!" });
-        }
-        else {
-          const destFolder = path.join(PLUGIN_FOLDER, pluginParser.normalizedName);
-          if (fs.existsSync(destFolder))
-            fs.renameSync(destFolder, path.join(BACKUP_PLUGIN_FOLDER, pluginParser.normalizedName));
-          await plugin.mv(destFolder);
-          res.status(200).send({ message: "Plugin updated successfully!", fileName: pluginParser.normalizedName });
-        }
-      }
-      else {
-        res.status(400).send({ message: pluginParser.errorMessage });
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
-    }
+      return await manager.uploadPlugin(req.files.plugin);
   }));
 
   /**
@@ -167,26 +113,17 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    *
    * @param filter: null | "disabled" | "backedup"
    */
-  options.router.get("/plugins", asyncHandler(async (req, res) => {
-    try {
-      const filter = typeof req.query.filter === "string" ? req.query.filter : "";
-      switch (filter) {
-        case "":
-          res.json(await getListOfPlugins());
-          break;
-        case "disabled":
-          res.json(await getListOfPlugins(DISABLED_PLUGIN_FOLDER));
-          break;
-        case "backedup":
-          res.json(await getListOfPlugins(BACKUP_PLUGIN_FOLDER));
-          break;
-        default:
-          res.status(400).send({ message: "Filter not valid!" });
-          break;
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
+  options.router.get("/plugins", handleRequest(async (req, _res) => {
+    const filter = typeof req.query.filter === "string" ? req.query.filter : "";
+    switch (filter) {
+      case "":
+        return await manager.getListOfPlugins();
+      case "disabled":
+        return await manager.getListOfPlugins(manager.DISABLED_PLUGIN_FOLDER);
+      case "backedup":
+        return await manager.getListOfPlugins(manager.BACKUP_PLUGIN_FOLDER);
+      default:
+        throw new ParameterExceptionPluginError("filter", filter, ["disabled", "backedup"], true);
     }
   }));
 
@@ -195,24 +132,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    *
    * @param fileName: the file name of the plugin
    */
-  options.router.get("/plugin/:fileName", asyncHandler(async (req, res) => {
-    try {
-      const pluginPath = path.join(PLUGIN_FOLDER, req.params.fileName);
-      if (fs.existsSync(pluginPath)) {
-        const pluginParser = new PluginParser(pluginPath);
-        if (await pluginParser.parse()) {
-          res.json(pluginParser.manifest);
-        }
-        else {
-          res.status(400).send({ message: "Plugin not valid!" });
-        }
-      }
-      else
-        res.status(400).send({ message: "Plugin not found!" });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
-    }
+  options.router.get("/plugin/:fileName", handleRequest(async (req, _res) => {
+    return await manager.getPluginManifest(req.params.fileName);
   }));
 
   /**
@@ -220,29 +141,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    *
    * @param fileName: the file name of the plugin
    */
-  options.router.patch("/plugin/:fileName/disable", asyncHandler(async (req, res) => {
-    try {
-      const srcFolder = path.join(PLUGIN_FOLDER, req.params.fileName);
-      if (fs.existsSync(srcFolder)) {
-        const pluginParser = new PluginParser(srcFolder);
-        if (await pluginParser.parse()) {
-          if (pluginParser.manifest!.name === selfParser.manifest!.name) {
-            res.status(400).send({ message: "Impossible to operate on the Plugin Manager!" });
-          }
-          else {
-            fs.renameSync(srcFolder, path.join(DISABLED_PLUGIN_FOLDER, req.params.fileName));
-            res.status(200).send({ message: "Plugin moved to disabled folder!" });
-          }
-        }
-        else
-          res.status(400).send({ message: pluginParser.errorMessage });
-      }
-      else
-        res.status(400).send({ message: "Plugin not found!" });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
-    }
+  options.router.patch("/plugin/:fileName/disable", handleRequest(async (req, _res) => {
+    return await manager.disablePlugin(req.params.fileName);
   }));
 
   /**
@@ -250,29 +150,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    *
    * @param fileName: the file name of the plugin
    */
-  options.router.patch("/plugin/:fileName/enable", asyncHandler(async (req, res) => {
-    try {
-      const srcFolder = path.join(DISABLED_PLUGIN_FOLDER, req.params.fileName);
-      if (fs.existsSync(srcFolder)) {
-        const pluginParser = new PluginParser(srcFolder);
-        if (await pluginParser.parse()) {
-          if (pluginParser.manifest!.name === selfParser.manifest!.name) {
-            res.status(400).send({ message: "Impossible to operate on the Plugin Manager!" });
-          }
-          else {
-            fs.renameSync(srcFolder, path.join(PLUGIN_FOLDER, req.params.fileName));
-            res.status(200).send({ message: "Plugin moved from disabled folder!" });
-          }
-        }
-        else
-          res.status(400).send({ message: pluginParser.errorMessage });
-      }
-      else
-        res.status(400).send({ message: "Plugin not found!" });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
-    }
+  options.router.patch("/plugin/:fileName/enable", handleRequest(async (req, _res) => {
+    return await manager.enablePlugin(req.params.fileName)
   }));
 
   /**
@@ -280,29 +159,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    *
    * @param fileName: the file name of the plugin
    */
-  options.router.patch("/plugin/:fileName/restore", asyncHandler(async (req, res) => {
-    try {
-      const srcFolder = path.join(BACKUP_PLUGIN_FOLDER, req.params.fileName);
-      if (fs.existsSync(srcFolder)) {
-        const pluginParser = new PluginParser(srcFolder);
-        if (await pluginParser.parse()) {
-          if (pluginParser.manifest!.name === selfParser.manifest!.name) {
-            res.status(400).send({ message: "Impossible to operate on the Plugin Manager!" });
-          }
-          else {
-            fs.copyFileSync(srcFolder, path.join(PLUGIN_FOLDER, req.params.fileName));
-            res.status(200).send({ message: "Plugin restored from backup folder!" });
-          }
-        }
-        else
-          res.status(400).send({ message: pluginParser.errorMessage });
-      }
-      else
-        res.status(400).send({ message: "Plugin not found!" });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
-    }
+  options.router.patch("/plugin/:fileName/restore", handleRequest(async (req, _res) => {
+    return await manager.restorePlugin(req.params.fileName);
   }));
 
   /**
@@ -310,29 +168,8 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    *
    * @param fileName: the file name of the plugin
    */
-  options.router.delete("/plugin/:fileName", asyncHandler(async (req, res) => {
-    try {
-      const srcFolder = path.join(PLUGIN_FOLDER, req.params.fileName);
-      if (fs.existsSync(srcFolder)) {
-        const pluginParser = new PluginParser(srcFolder);
-        if (await pluginParser.parse()) {
-          if (pluginParser.manifest!.name === selfParser.manifest!.name) {
-            res.status(400).send({ message: "Impossible to operate on the Plugin Manager!" });
-          }
-          else {
-            fs.renameSync(srcFolder, path.join(BACKUP_PLUGIN_FOLDER, req.params.fileName));
-            res.status(200).send({ message: "Plugin deleted!" });
-          }
-        }
-        else
-          res.status(400).send({ message: pluginParser.errorMessage });
-      }
-      else
-        res.status(400).send({ message: "Plugin not found!" });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send(err);
-    }
+  options.router.delete("/plugin/:fileName", handleRequest(async (req, _res) => {
+    return await manager.deletePlugin(req.params.fileName);
   }));
 
 };

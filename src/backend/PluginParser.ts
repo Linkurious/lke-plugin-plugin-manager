@@ -4,7 +4,7 @@ import tar from "tar";
 import path from "path";
 import { Duplex, Readable } from "stream";
 import { pipeline } from "stream/promises";
-import { Manifest } from "../@types/plugin";
+import { Manifest, PluginSource } from "../@types/plugin";
 
 /* eslint-disable no-underscore-dangle */
 /**
@@ -26,7 +26,7 @@ export class PluginParser {
   public get errorMessage(): string { return this._errorMessage; }
   public get normalizedName(): string { return this.status === "parsed" ? `${this._manifest!.name}-${this._manifest!.version}.lke` : ""; }
 
-  constructor(pluginSource: string | Readable | Buffer) {
+  constructor(pluginSource: PluginSource) {
     this._parsed = false;
     this._sourceType = null;
     this._numberOfManifestFiles = 0;

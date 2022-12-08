@@ -17,6 +17,8 @@ export interface PluginRouteOptions<CustomPluginConfig extends PluginConfig> {
   getRestClient: (req: Request) => RestClient;
 }
 
+export type PluginSource = string | Readable | Buffer;
+
 export interface Manifest {
   name: string;
   version: string;
@@ -25,4 +27,10 @@ export interface Manifest {
   publicRoute?: string;
   singlePageAppIndex?: string;
   backendFiles?: string[];
+}
+
+export interface SuccessfulResponse {
+  status: "ok";
+  attribute: string;
+  attributeValue: unknown;
 }

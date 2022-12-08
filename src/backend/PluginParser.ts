@@ -4,7 +4,8 @@ import tar from "tar";
 import path from "path";
 import { Duplex, Readable } from "stream";
 import { pipeline } from "stream/promises";
-import { Manifest, ManifestParserErrorMessages, PluginSource } from "../@types/plugin";
+import { Manifest, PluginSource } from "../@types/plugin";
+import { AlreadyParsedPluginError, InvalidObjectPluginError, InvalidSourcePluginError, MalformedManifestPluginError, ManifestNotFoundPluginError, MultipleManifestsFoundPluginError, PathNotFoundPluginError, PluginError } from "./exceptions";
 
 /* eslint-disable no-underscore-dangle */
 /**
@@ -18,18 +19,17 @@ export class PluginParser {
   private _parsed = false;
   private _numberOfManifestFiles: number;
   private _manifest: Manifest | null;
-  private _errorMessage: string;
+  private _error: PluginError | undefined;
 
-  public get status(): "initialized" | "parsed" | "error" { return !this._parsed ? "initialized" : this._errorMessage === "" ? "parsed" : "error"; }
+  public get status(): "initialized" | "parsed" | "error" { return !this._parsed ? "initialized" : this._error === undefined ? "parsed" : "error"; }
   public get manifest(): Manifest | null { return this._manifest; }
-  public get errorMessage(): string { return this._errorMessage; }
+  public get error(): PluginError | undefined { return this._error; }
   public get normalizedName(): string { return this.status === "parsed" ? `${!this._manifest!.name.startsWith("lke-plugin-") ? "lke-plugin-" : ""}${this._manifest!.name}-${this._manifest!.version}.lke` : ""; }
 
   constructor(pluginSource: PluginSource) {
     this._parsed = false;
     this._numberOfManifestFiles = 0;
     this._manifest = null;
-    this._errorMessage = "";
     this._pluginSource = pluginSource;
   }
 
@@ -46,7 +46,7 @@ export class PluginParser {
 
     if (typeof this._pluginSource === "string") {
       if (!fs.existsSync(this._pluginSource)) {
-        this._errorMessage = ManifestParserErrorMessages.PATH_NOT_FOUND;
+        this._error = new PathNotFoundPluginError(this._pluginSource);
         return undefined;
       }
 
@@ -59,7 +59,7 @@ export class PluginParser {
         return null;
       }
       else {
-        this._errorMessage = ManifestParserErrorMessages.INVALID_OBJECT;
+        this._error = new InvalidObjectPluginError(this._pluginSource);
         return undefined;
       }
     }
@@ -72,7 +72,7 @@ export class PluginParser {
       pluginStream = this._pluginSource;
     }
     else {
-      this._errorMessage = ManifestParserErrorMessages.INVALID_PLUGIN_SOURCE;
+      this._error = new InvalidSourcePluginError();
       return undefined;
     }
 
@@ -88,7 +88,7 @@ export class PluginParser {
       let manifestBufferPromise: Promise<Buffer> | undefined;
 
       if (this._parsed) {
-        this._errorMessage = ManifestParserErrorMessages.ALREADY_PARSED;
+        this._error = new AlreadyParsedPluginError();
         return false;
       }
 
@@ -130,7 +130,7 @@ export class PluginParser {
       }
 
       if (manifestBufferPromise === undefined) {
-        this._errorMessage = ManifestParserErrorMessages.MANIFEST_NOT_FOUND;
+        this._error = new ManifestNotFoundPluginError();
         return false;
       }
 
@@ -138,7 +138,7 @@ export class PluginParser {
       const manifestBuffer = await manifestBufferPromise;
 
       if (this._numberOfManifestFiles > 1) {
-        this._errorMessage = ManifestParserErrorMessages.MULTIPLE_MANIFESTS_FOUND;
+        this._error = new MultipleManifestsFoundPluginError();
         return false;
       }
 
@@ -148,7 +148,7 @@ export class PluginParser {
       catch (err) {
         console.error(err);
         this._manifest = null;
-        this._errorMessage = ManifestParserErrorMessages.MALFORMED_MANIFESTS;
+        this._error = new MalformedManifestPluginError();
         return false;
       }
 
@@ -156,7 +156,7 @@ export class PluginParser {
     }
     catch (err) {
       console.error(err);
-      this._errorMessage = "Unexpected error: " + JSON.stringify(err);
+      this._error = PluginError.parseError(err);
       return false;
     }
     finally {

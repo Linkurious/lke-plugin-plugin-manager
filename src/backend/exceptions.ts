@@ -1,7 +1,16 @@
-import { PluginParser } from "./PluginParser";
+export const enum ErrorType {
+  UNHANDLED = "Unhandled Error",
+  GENERIC = "Generic Error",
+  UNAUTHORIZED = "Unauthorized",
+  UPLOAD_FAILED = "Upload failed",
+  INVALID_PARAMETER = "Invalid parameter",
+  INVALID_PLUGIN = "Invalid plugin",
+  INVALID_ACTION = "Invalid action"
+}
 
 export class PluginError extends Error {
 
+  public name: ErrorType;
   protected httpResponseCode: number;
 
   public getHttpResponseCode(): number {
@@ -11,7 +20,7 @@ export class PluginError extends Error {
   constructor(message?: string) {
     super(message || "An unknown issue happend on the system, contact the system administrator.");
     this.httpResponseCode = 500;
-    this.name = "Unhandled Error";
+    this.name = ErrorType.UNHANDLED;
   }
 
   static parseError(e: unknown): PluginError {
@@ -42,7 +51,7 @@ export class GenericPluginError extends PluginError {
   constructor(message: string) {
     super(message);
     this.httpResponseCode = 500;
-    this.name = "Generic Error";
+    this.name = ErrorType.GENERIC;
   }
 }
 
@@ -50,7 +59,7 @@ export class UnauthorizedPluginError extends PluginError {
   constructor(roles: string[]) {
     super(`The user has not the rights to perform the action. Connect with any of this roles: [${roles.join(", ")}]`);
     this.httpResponseCode = 401;
-    this.name = "Unauthorized Error";
+    this.name = ErrorType.UNAUTHORIZED;
   }
 }
 
@@ -58,7 +67,7 @@ export class ParameterExceptionPluginError extends PluginError {
   constructor(param: string, value: string, validValues: string[], optional: boolean) {
     super(`Value ${value} not supported for parameter ${param}. Pass any of [${validValues.join(", ")}]${optional ? " or remove it" : ""}.`);
     this.httpResponseCode = 400;
-    this.name = "Invalid parameter";
+    this.name = ErrorType.INVALID_PARAMETER;
   }
 }
 
@@ -66,7 +75,7 @@ export class UploadPluginError extends PluginError {
   constructor() {
     super("Upload a single file trough a form parameter named `plugin`.");
     this.httpResponseCode = 400;
-    this.name = "Upload failed";
+    this.name = ErrorType.UPLOAD_FAILED;
   }
 }
 
@@ -74,23 +83,55 @@ export class UploadSizePluginError extends PluginError {
   constructor() {
     super("File too big for the upload, increase the `maxUploadSizeMb` configuration.");
     this.httpResponseCode = 400;
-    this.name = "Upload failed";
+    this.name = ErrorType.UPLOAD_FAILED;
   }
 }
 
-export class InvalidManifestPluginError extends PluginError {
-  constructor(pluginParser: PluginParser) {
-    super(pluginParser.errorMessage);
+export class PathNotFoundPluginError extends PluginError {
+  constructor(path: string) {
+    super(`The path '${path}' does not exists, check the spell.`);
     this.httpResponseCode = 400;
-    this.name = "Plugin parsing failure";
+    this.name = ErrorType.INVALID_PLUGIN;
   }
 }
 
-export class FileNotFoundPluginError extends PluginError {
-  constructor(fileName: string) {
-    super(`There is no file name '${fileName}', check the name spell.`);
+export class InvalidObjectPluginError extends PluginError {
+  constructor(path: string) {
+    super(`The path '${path}' points to an invalid object, specify the path to a plugin file.`);
     this.httpResponseCode = 400;
-    this.name = "Plugin not found";
+    this.name = ErrorType.INVALID_PARAMETER;
+  }
+}
+
+export class InvalidSourcePluginError extends PluginError {
+  constructor() {
+    super("Invalid input for the plugin parser.");
+    this.httpResponseCode = 400;
+    this.name = ErrorType.INVALID_PLUGIN;
+  }
+}
+
+export class ManifestNotFoundPluginError extends PluginError {
+  constructor() {
+    super("The file is not a valid plugin format: `manifest.json` not found.");
+    this.httpResponseCode = 400;
+    this.name = ErrorType.INVALID_PLUGIN;
+  }
+}
+
+export class MultipleManifestsFoundPluginError extends PluginError {
+  constructor() {
+    super("The file is not a valid plugin format: multiple `manifest.json` found.");
+    this.httpResponseCode = 400;
+    this.name = ErrorType.INVALID_PLUGIN;
+  }
+}
+
+export class MalformedManifestPluginError extends PluginError {
+  constructor() {
+    super("Error while parsing the `manifest.json` file, specify a valid JSON object.");
+    this.httpResponseCode = 400;
+    this.name = ErrorType.INVALID_PLUGIN;
   }
 }
 
@@ -98,7 +139,7 @@ export class InvalidSelfActionPluginError extends PluginError {
   constructor() {
     super("Impossible to operate on the Plugin itself, perform the action manually on the server.");
     this.httpResponseCode = 400;
-    this.name = "Invalid action";
+    this.name = ErrorType.INVALID_ACTION;
   }
 }
 
@@ -106,6 +147,14 @@ export class InvalidFileNamePluginError extends PluginError {
   constructor(fileName: string) {
     super(`The specified file name '${fileName}', is not valid. Use a valid file name without any foder path.`);
     this.httpResponseCode = 400;
-    this.name = "Invalid action";
+    this.name = ErrorType.INVALID_ACTION;
+  }
+}
+
+export class AlreadyParsedPluginError extends PluginError {
+  constructor() {
+    super("Plugin already parsed, not possible to parse a second time");
+    this.httpResponseCode = 400;
+    this.name = ErrorType.INVALID_ACTION;
   }
 }

@@ -16,7 +16,6 @@ export class PluginParser {
 
   private _pluginSource: string | Readable | Buffer;
   private _parsed = false;
-  private _sourceType: "file" | "folder" | null;
   private _numberOfManifestFiles: number;
   private _manifest: Manifest | null;
   private _errorMessage: string;
@@ -28,11 +27,56 @@ export class PluginParser {
 
   constructor(pluginSource: PluginSource) {
     this._parsed = false;
-    this._sourceType = null;
     this._numberOfManifestFiles = 0;
     this._manifest = null;
     this._errorMessage = "";
     this._pluginSource = pluginSource;
+  }
+
+  /**
+   * Get the stream from the source.
+   *
+   * @returns
+   *  a Readable stream in case of a plugin file
+   *  `null` in case of plugin folder
+   *  `undefined` in case of an error
+   */
+  private getPluginStream(): Readable | undefined | null {
+    let pluginStream: Readable;
+
+    if (typeof this._pluginSource === "string") {
+      if (!fs.existsSync(this._pluginSource)) {
+        this._errorMessage = ManifestParserErrorMessages.PATH_NOT_FOUND;
+        return undefined;
+      }
+
+      // Use real path to handle eventual sym links
+      const pathStats = fs.lstatSync(fs.realpathSync(this._pluginSource));
+      if (pathStats.isFile()) {
+        pluginStream = fs.createReadStream(this._pluginSource);
+      }
+      else if (pathStats.isDirectory()) {
+        return null;
+      }
+      else {
+        this._errorMessage = ManifestParserErrorMessages.INVALID_OBJECT;
+        return undefined;
+      }
+    }
+    else if (this._pluginSource instanceof Buffer) {
+      pluginStream = new Duplex();
+      pluginStream.push(this._pluginSource);
+      pluginStream.push(null);
+    }
+    else if (this._pluginSource instanceof Readable) {
+      pluginStream = this._pluginSource;
+    }
+    else {
+      this._errorMessage = ManifestParserErrorMessages.INVALID_PLUGIN_SOURCE;
+      return undefined;
+    }
+
+    return pluginStream;
   }
 
   /**
@@ -41,51 +85,21 @@ export class PluginParser {
    */
   public async parse(): Promise<boolean> {
     try {
+      let manifestBufferPromise: Promise<Buffer> | undefined;
+
       if (this._parsed) {
         this._errorMessage = ManifestParserErrorMessages.ALREADY_PARSED;
         return false;
       }
 
-      let pluginStream: Readable | null;
-      if (typeof this._pluginSource === "string") {
-        if (!fs.existsSync(this._pluginSource)) {
-          this._errorMessage = ManifestParserErrorMessages.PATH_NOT_FOUND;
-          return false;
-        }
-
-        // Use real path to handle eventual sym links
-        const pathStats = fs.lstatSync(fs.realpathSync(this._pluginSource));
-        if (pathStats.isFile()) {
-          this._sourceType = "file";
-          pluginStream = fs.createReadStream(this._pluginSource);
-        }
-        else if (pathStats.isDirectory()) {
-          this._sourceType = "folder";
-          pluginStream = null;
-        }
-        else {
-          this._errorMessage = ManifestParserErrorMessages.INVALID_OBJECT;
-          return false;
-        }
-      }
-      else if (this._pluginSource instanceof Buffer) {
-        this._sourceType = "file";
-        pluginStream = new Duplex();
-        pluginStream.push(this._pluginSource);
-        pluginStream.push(null);
-      }
-      else if (this._pluginSource instanceof Readable) {
-        this._sourceType = "file";
-        pluginStream = this._pluginSource;
-      }
-      else {
-        this._errorMessage = ManifestParserErrorMessages.INVALID_PLUGIN_SOURCE;
+      const pluginStream = this.getPluginStream();
+      if (pluginStream === undefined) {
+        // Plugin not found
         return false;
       }
 
-      let manifestBufferPromise: Promise<Buffer> | undefined;
-
-      if (this._sourceType === "file") {
+      if (pluginStream) {
+        // Plugin file
         await pipeline(
           pluginStream!,
           tar.t({
@@ -106,6 +120,7 @@ export class PluginParser {
         );
       }
       else {
+        // Plugin folder
         for (const fileName of glob.sync(path.join(this._pluginSource as string, "**/manifest.json"))) {
           if (this._numberOfManifestFiles === 0)
             manifestBufferPromise = Promise.resolve(fs.readFileSync(fileName));

@@ -4,7 +4,7 @@ import tar from "tar";
 import path from "path";
 import { Duplex, Readable } from "stream";
 import { pipeline } from "stream/promises";
-import { Manifest, PluginSource } from "../@types/plugin";
+import { Manifest, ManifestParserErrorMessages, PluginSource } from "../@types/plugin";
 
 /* eslint-disable no-underscore-dangle */
 /**
@@ -42,14 +42,14 @@ export class PluginParser {
   public async parse(): Promise<boolean> {
     try {
       if (this._parsed) {
-        this._errorMessage = "Plugin already parsed!";
+        this._errorMessage = ManifestParserErrorMessages.ALREADY_PARSED;
         return false;
       }
 
       let pluginStream: Readable | null;
       if (typeof this._pluginSource === "string") {
         if (!fs.existsSync(this._pluginSource)) {
-          this._errorMessage = "Path doesn't exists!";
+          this._errorMessage = ManifestParserErrorMessages.PATH_NOT_FOUND;
           return false;
         }
 
@@ -64,7 +64,7 @@ export class PluginParser {
           pluginStream = null;
         }
         else {
-          this._errorMessage = "Invalid object found at path!";
+          this._errorMessage = ManifestParserErrorMessages.INVALID_OBJECT;
           return false;
         }
       }
@@ -79,7 +79,7 @@ export class PluginParser {
         pluginStream = this._pluginSource;
       }
       else {
-        this._errorMessage = "Invalid plugin source!";
+        this._errorMessage = ManifestParserErrorMessages.INVALID_PLUGIN_SOURCE;
         return false;
       }
 
@@ -115,7 +115,7 @@ export class PluginParser {
       }
 
       if (manifestBufferPromise === undefined) {
-        this._errorMessage = "The file is not a valid plugin format: manifest.json not found!";
+        this._errorMessage = ManifestParserErrorMessages.MANIFEST_NOT_FOUND;
         return false;
       }
 
@@ -123,7 +123,7 @@ export class PluginParser {
       const manifestBuffer = await manifestBufferPromise;
 
       if (this._numberOfManifestFiles > 1) {
-        this._errorMessage = "The file is not a valid plugin format: multiple manifest.json found!";
+        this._errorMessage = ManifestParserErrorMessages.MULTIPLE_MANIFESTS_FOUND;
         return false;
       }
 
@@ -133,7 +133,7 @@ export class PluginParser {
       catch (err) {
         console.error(err);
         this._manifest = null;
-        this._errorMessage = "Error while parsing the manifest.json file!";
+        this._errorMessage = ManifestParserErrorMessages.MALFORMED_MANIFESTS;
         return false;
       }
 

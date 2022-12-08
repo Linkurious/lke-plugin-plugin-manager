@@ -24,7 +24,7 @@ export class PluginParser {
   public get status(): "initialized" | "parsed" | "error" { return !this._parsed ? "initialized" : this._errorMessage === "" ? "parsed" : "error"; }
   public get manifest(): Manifest | null { return this._manifest; }
   public get errorMessage(): string { return this._errorMessage; }
-  public get normalizedName(): string { return this.status === "parsed" ? `${this._manifest!.name}-${this._manifest!.version}.lke` : ""; }
+  public get normalizedName(): string { return this.status === "parsed" ? `${!this._manifest!.name.startsWith("lke-plugin-") ? "lke-plugin-" : ""}${this._manifest!.name}-${this._manifest!.version}.lke` : ""; }
 
   constructor(pluginSource: PluginSource) {
     this._parsed = false;

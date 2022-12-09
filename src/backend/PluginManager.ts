@@ -1,44 +1,51 @@
-import { Manifest, PluginSource, SuccessfulResponse } from "../@types/plugin";
+import fs = require('fs');
+import path = require('path');
 
-import fs from "fs";
-import path from "path";
-import glob from "glob";
+import {glob} from 'glob';
+import fileUpload = require('express-fileupload');
 
-import { PluginParser } from "./PluginParser";
-import fileUpload from "express-fileupload";
-import { InvalidFileNamePluginError, InvalidSelfActionPluginError, UploadSizePluginError } from "./exceptions";
+import {Manifest, PluginSource, SuccessfulResponse} from '../@types/plugin';
+
+import {PluginParser} from './PluginParser';
+import {
+  InvalidFileNamePluginError,
+  InvalidSelfActionPluginError,
+  UploadSizePluginError
+} from './exceptions';
 
 export class PluginManager {
-
   private readonly selfParser: PluginParser;
 
   public readonly PLUGIN_FOLDER: string;
   public readonly DISABLED_PLUGIN_FOLDER: string;
   public readonly BACKUP_PLUGIN_FOLDER: string;
 
-  constructor(pluginSource: PluginSource = ".") {
-    this.PLUGIN_FOLDER = path.join("..", "..", "plugins");
-    this.DISABLED_PLUGIN_FOLDER = path.join(this.PLUGIN_FOLDER, ".disabled");
-    this.BACKUP_PLUGIN_FOLDER = path.join(this.PLUGIN_FOLDER, ".old");
+  constructor(pluginSource: PluginSource = '.') {
+    this.PLUGIN_FOLDER = path.join('..', '..', 'plugins');
+    this.DISABLED_PLUGIN_FOLDER = path.join(this.PLUGIN_FOLDER, '.disabled');
+    this.BACKUP_PLUGIN_FOLDER = path.join(this.PLUGIN_FOLDER, '.old');
 
     this.selfParser = new PluginParser(pluginSource);
   }
 
-  async initialize() {
+  async initialize(): Promise<void> {
     // Create local auxiliary folders
-    if (!fs.existsSync(this.DISABLED_PLUGIN_FOLDER))
+    if (!fs.existsSync(this.DISABLED_PLUGIN_FOLDER)) {
       fs.mkdirSync(this.DISABLED_PLUGIN_FOLDER);
-    if (!fs.existsSync(this.BACKUP_PLUGIN_FOLDER))
+    }
+    if (!fs.existsSync(this.BACKUP_PLUGIN_FOLDER)) {
       fs.mkdirSync(this.BACKUP_PLUGIN_FOLDER);
+    }
 
-    if (!await this.selfParser.parse())
+    if (!(await this.selfParser.parse())) {
       throw this.selfParser.error!;
+    }
   }
 
   /**
    * Get the manigest of this plugin
    */
-  getPluginManagerManifest() {
+  getPluginManagerManifest(): Manifest | null {
     return this.selfParser.manifest;
   }
 
@@ -50,44 +57,48 @@ export class PluginManager {
    */
   async getListOfPlugins(folder: string = this.PLUGIN_FOLDER): Promise<Record<string, Manifest>> {
     const plugins = {} as Record<string, Manifest>;
-    for (const plugin of glob.sync(path.join(folder, "*.lke"))) {
+    for (const plugin of glob.sync(path.join(folder, '*.lke'))) {
       const fileName = path.basename(plugin);
       const pluginParser = new PluginParser(plugin);
       if (await pluginParser.parse()) {
         plugins[fileName] = pluginParser.manifest!;
-      }
-      else
+      } else {
         console.warn(`Found ${fileName} but it's not a valid plugin`);
+      }
     }
     return plugins;
   }
 
   async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<SuccessfulResponse> {
-    if (plugin.truncated)
+    if (plugin.truncated) {
       throw new UploadSizePluginError();
+    }
 
     const pluginParser = new PluginParser(plugin.tempFilePath);
     if (await pluginParser.parse()) {
       if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
         throw new InvalidSelfActionPluginError();
-      }
-      else {
+      } else {
         const destFolder = path.join(this.PLUGIN_FOLDER, pluginParser.normalizedName);
-        if (fs.existsSync(destFolder))
-          fs.renameSync(destFolder, path.join(this.BACKUP_PLUGIN_FOLDER, pluginParser.normalizedName));
+        if (fs.existsSync(destFolder)) {
+          fs.renameSync(
+            destFolder,
+            path.join(this.BACKUP_PLUGIN_FOLDER, pluginParser.normalizedName)
+          );
+        }
         await plugin.mv(destFolder);
-        return { status: "ok", attribute: "fileName", attributeValue: pluginParser.normalizedName };
+        return {status: 'ok', attribute: 'fileName', attributeValue: pluginParser.normalizedName};
       }
-    }
-    else {
+    } else {
       throw pluginParser.error;
     }
   }
 
-  public validateFileName(fileName: string) {
+  public validateFileName(fileName: string): void {
     const parsedFileNamePath = path.parse(fileName);
-    if (parsedFileNamePath.dir !== "")
+    if (parsedFileNamePath.dir !== '') {
       throw new InvalidFileNamePluginError(fileName);
+    }
   }
 
   /**
@@ -102,8 +113,7 @@ export class PluginManager {
     const pluginParser = new PluginParser(pluginPath);
     if (await pluginParser.parse()) {
       return pluginParser.manifest!;
-    }
-    else {
+    } else {
       throw pluginParser.error;
     }
   }
@@ -116,14 +126,13 @@ export class PluginManager {
     if (await pluginParser.parse()) {
       if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
         throw new InvalidSelfActionPluginError();
-      }
-      else {
+      } else {
         fs.renameSync(srcFolder, path.join(this.DISABLED_PLUGIN_FOLDER, fileName));
         return;
       }
-    }
-    else
+    } else {
       throw pluginParser.error;
+    }
   }
 
   async enablePlugin(fileName: string): Promise<void> {
@@ -134,14 +143,13 @@ export class PluginManager {
     if (await pluginParser.parse()) {
       if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
         throw new InvalidSelfActionPluginError();
-      }
-      else {
+      } else {
         fs.renameSync(srcFolder, path.join(this.PLUGIN_FOLDER, fileName));
         return;
       }
-    }
-    else
+    } else {
       throw pluginParser.error;
+    }
   }
 
   async restorePlugin(fileName: string): Promise<void> {
@@ -152,14 +160,13 @@ export class PluginManager {
     if (await pluginParser.parse()) {
       if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
         throw new InvalidSelfActionPluginError();
-      }
-      else {
+      } else {
         fs.copyFileSync(srcFolder, path.join(this.PLUGIN_FOLDER, fileName));
         return;
       }
-    }
-    else
+    } else {
       throw pluginParser.error;
+    }
   }
 
   async deletePlugin(fileName: string): Promise<void> {
@@ -170,14 +177,12 @@ export class PluginManager {
     if (await pluginParser.parse()) {
       if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
         throw new InvalidSelfActionPluginError();
-      }
-      else {
+      } else {
         fs.renameSync(srcFolder, path.join(this.BACKUP_PLUGIN_FOLDER, fileName));
         return;
       }
-    }
-    else
+    } else {
       throw pluginParser.error;
+    }
   }
-
 }

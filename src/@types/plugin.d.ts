@@ -1,5 +1,7 @@
-import { RestClient } from "@linkurious/rest-client";
-import { Router, Request } from "express";
+import {Readable} from 'stream';
+
+import {RestClient} from '@linkurious/rest-client';
+import {Router, Request} from 'express';
 
 interface PluginBaseConfig {
   // path without any /
@@ -30,7 +32,7 @@ export interface Manifest {
 }
 
 export interface SuccessfulResponse {
-  status: "ok";
+  status: 'ok';
   attribute: string;
   attributeValue: unknown;
 }

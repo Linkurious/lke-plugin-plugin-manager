@@ -1,15 +1,16 @@
+import {GenericType} from '../@types/shared';
+
 export const enum ErrorType {
-  UNHANDLED = "Unhandled Error",
-  GENERIC = "Generic Error",
-  UNAUTHORIZED = "Unauthorized",
-  UPLOAD_FAILED = "Upload failed",
-  INVALID_PARAMETER = "Invalid parameter",
-  INVALID_PLUGIN = "Invalid plugin",
-  INVALID_ACTION = "Invalid action"
+  UNHANDLED = 'Unhandled Error',
+  GENERIC = 'Generic Error',
+  UNAUTHORIZED = 'Unauthorized',
+  UPLOAD_FAILED = 'Upload failed',
+  INVALID_PARAMETER = 'Invalid parameter',
+  INVALID_PLUGIN = 'Invalid plugin',
+  INVALID_ACTION = 'Invalid action'
 }
 
 export class PluginError extends Error {
-
   public name: ErrorType;
   protected httpResponseCode: number;
 
@@ -18,7 +19,7 @@ export class PluginError extends Error {
   }
 
   constructor(message?: string) {
-    super(message || "An unknown issue happend on the system, contact the system administrator.");
+    super(message || 'An unknown issue happend on the system, contact the system administrator.');
     this.httpResponseCode = 500;
     this.name = ErrorType.UNHANDLED;
   }
@@ -27,24 +28,26 @@ export class PluginError extends Error {
     let internalError: PluginError;
     if (e instanceof PluginError) {
       internalError = e;
-    }
-    else if (e instanceof Error) {
+    } else if (e instanceof Error) {
       internalError = new PluginError(`${e.name} - ${e.message}`);
       internalError.stack = e.stack;
-    }
-    else if ((<any>e).originalResponse?.body !== undefined) {
+    } else if ((<GenericType>e)?.originalResponse?.body !== undefined) {
       // To intercept LKE API Errors
-      console.error("Exception occurred in an API call:", (<any>e).originalResponse.body);
-      internalError = new GenericPluginError("Exception occurred in an API call, check the logs for more details.");
-    }
-    else {
+      console.error('Exception occurred in an API call:', (<GenericType>e).originalResponse.body);
+      internalError = new GenericPluginError(
+        'Exception occurred in an API call, check the logs for more details.'
+      );
+    } else {
       // Generic parser
-      internalError = new PluginError((<any>e)?.message?.toString() || JSON.stringify(e));
+      internalError = new PluginError(
+        (<GenericType>e)?.message?.toString !== undefined
+          ? (<GenericType>e).message.toString()
+          : JSON.stringify(e)
+      );
     }
 
     return internalError;
   }
-
 }
 
 export class GenericPluginError extends PluginError {
@@ -57,7 +60,11 @@ export class GenericPluginError extends PluginError {
 
 export class UnauthorizedPluginError extends PluginError {
   constructor(roles: string[]) {
-    super(`The user has not the rights to perform the action. Connect with any of this roles: [${roles.join(", ")}]`);
+    super(
+      `The user has not the rights to perform the action. Connect with any of this roles: [${roles.join(
+        ', '
+      )}]`
+    );
     this.httpResponseCode = 401;
     this.name = ErrorType.UNAUTHORIZED;
   }
@@ -65,7 +72,11 @@ export class UnauthorizedPluginError extends PluginError {
 
 export class ParameterExceptionPluginError extends PluginError {
   constructor(param: string, value: string, validValues: string[], optional: boolean) {
-    super(`Value ${value} not supported for parameter ${param}. Pass any of [${validValues.join(", ")}]${optional ? " or remove it" : ""}.`);
+    super(
+      `Value ${value} not supported for parameter ${param}. Pass any of [${validValues.join(
+        ', '
+      )}]${optional ? ' or remove it' : ''}.`
+    );
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_PARAMETER;
   }
@@ -73,7 +84,7 @@ export class ParameterExceptionPluginError extends PluginError {
 
 export class UploadPluginError extends PluginError {
   constructor() {
-    super("Upload a single file trough a form parameter named `plugin`.");
+    super('Upload a single file trough a form parameter named `plugin`.');
     this.httpResponseCode = 400;
     this.name = ErrorType.UPLOAD_FAILED;
   }
@@ -81,7 +92,7 @@ export class UploadPluginError extends PluginError {
 
 export class UploadSizePluginError extends PluginError {
   constructor() {
-    super("File too big for the upload, increase the `maxUploadSizeMb` configuration.");
+    super('File too big for the upload, increase the `maxUploadSizeMb` configuration.');
     this.httpResponseCode = 400;
     this.name = ErrorType.UPLOAD_FAILED;
   }
@@ -105,7 +116,7 @@ export class InvalidObjectPluginError extends PluginError {
 
 export class InvalidSourcePluginError extends PluginError {
   constructor() {
-    super("Invalid input for the plugin parser.");
+    super('Invalid input for the plugin parser.');
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_PLUGIN;
   }
@@ -113,7 +124,7 @@ export class InvalidSourcePluginError extends PluginError {
 
 export class ManifestNotFoundPluginError extends PluginError {
   constructor() {
-    super("The file is not a valid plugin format: `manifest.json` not found.");
+    super('The file is not a valid plugin format: `manifest.json` not found.');
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_PLUGIN;
   }
@@ -121,7 +132,7 @@ export class ManifestNotFoundPluginError extends PluginError {
 
 export class MultipleManifestsFoundPluginError extends PluginError {
   constructor() {
-    super("The file is not a valid plugin format: multiple `manifest.json` found.");
+    super('The file is not a valid plugin format: multiple `manifest.json` found.');
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_PLUGIN;
   }
@@ -129,7 +140,7 @@ export class MultipleManifestsFoundPluginError extends PluginError {
 
 export class MalformedManifestPluginError extends PluginError {
   constructor() {
-    super("Error while parsing the `manifest.json` file, specify a valid JSON object.");
+    super('Error while parsing the `manifest.json` file, specify a valid JSON object.');
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_PLUGIN;
   }
@@ -137,7 +148,7 @@ export class MalformedManifestPluginError extends PluginError {
 
 export class InvalidSelfActionPluginError extends PluginError {
   constructor() {
-    super("Impossible to operate on the Plugin itself, perform the action manually on the server.");
+    super('Impossible to operate on the Plugin itself, perform the action manually on the server.');
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_ACTION;
   }
@@ -145,7 +156,9 @@ export class InvalidSelfActionPluginError extends PluginError {
 
 export class InvalidFileNamePluginError extends PluginError {
   constructor(fileName: string) {
-    super(`The specified file name '${fileName}', is not valid. Use a valid file name without any foder path.`);
+    super(
+      `The specified file name '${fileName}', is not valid. Use a valid file name without any foder path.`
+    );
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_ACTION;
   }
@@ -153,7 +166,7 @@ export class InvalidFileNamePluginError extends PluginError {
 
 export class AlreadyParsedPluginError extends PluginError {
   constructor() {
-    super("Plugin already parsed, not possible to parse a second time");
+    super('Plugin already parsed, not possible to parse a second time');
     this.httpResponseCode = 400;
     this.name = ErrorType.INVALID_ACTION;
   }

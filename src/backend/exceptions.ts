@@ -71,9 +71,10 @@ export class UnauthorizedPluginError extends PluginError {
 }
 
 export class ParameterExceptionPluginError extends PluginError {
-  constructor(param: string, value: string, validValues: string[], optional: boolean) {
+  constructor(param: string, value: unknown, validValues: string[], optional: boolean) {
+    const parsedValue = typeof value === 'string' ? value : JSON.stringify(value);
     super(
-      `Value ${value} not supported for parameter ${param}. Pass any of [${validValues.join(
+      `Value '${parsedValue}' not supported for parameter ${param}. Pass any of [${validValues.join(
         ', '
       )}]${optional ? ' or remove it' : ''}.`
     );

@@ -5,7 +5,7 @@ import fileUpload = require('express-fileupload');
 import {PluginConfig, PluginRouteOptions} from '../@types/plugin';
 
 import {loggerFormatter, parseLinkuriousAPI} from './shared';
-import {PluginManager} from './PluginManager';
+import {PluginDeploymentStatus, PluginManager} from './PluginManager';
 import {
   ParameterExceptionPluginError,
   PluginError,
@@ -130,21 +130,28 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   /**
    * Get the list of the plugins files in a specific folder
    *
-   * @param filter: null | "disabled" | "backedup"
+   * @param filter: null | "deployed" | "enabled" | "disabled" | "backup"
    */
   options.router.get(
     '/plugins',
     handleRequest(async (req) => {
-      const filter = typeof req.query.filter === 'string' ? req.query.filter : '';
-      switch (filter) {
-        case '':
-          return await manager.getListOfPlugins();
+      switch (req.query.filter) {
+        case 'deployed':
+          return await manager.getListOfPlugins(PluginDeploymentStatus.DEPLOYED);
+        case undefined:
+        case 'enabled':
+          return await manager.getListOfPlugins(PluginDeploymentStatus.ENABLED);
         case 'disabled':
-          return await manager.getListOfPlugins(manager.DISABLED_PLUGIN_FOLDER);
-        case 'backedup':
-          return await manager.getListOfPlugins(manager.BACKUP_PLUGIN_FOLDER);
+          return await manager.getListOfPlugins(PluginDeploymentStatus.DISABLED);
+        case 'backup':
+          return await manager.getListOfPlugins(PluginDeploymentStatus.BACKUP);
         default:
-          throw new ParameterExceptionPluginError('filter', filter, ['disabled', 'backedup'], true);
+          throw new ParameterExceptionPluginError(
+            'filter',
+            req.query.filter,
+            ['deployed', 'enabled', 'disabled', 'backup'],
+            true
+          );
       }
     })
   );

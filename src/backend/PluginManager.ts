@@ -211,4 +211,12 @@ export class PluginManager {
       throw pluginParser.error;
     }
   }
+
+  async purgeDirectory(
+    type: PluginDeploymentStatus.DISABLED | PluginDeploymentStatus.BACKUP
+  ): Promise<void> {
+    for (const file of fs.readdirSync(this.getPath(type))) {
+      fs.rmSync(path.join(this.getPath(type), file), {recursive: true});
+    }
+  }
 }

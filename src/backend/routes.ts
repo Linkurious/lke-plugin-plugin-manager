@@ -215,4 +215,28 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
       return await manager.deletePlugin(req.params.fileName);
     })
   );
+
+  /**
+   * Purge a specific folder
+   *
+   * @param filter: "disabled" | "backup"
+   */
+  options.router.delete(
+    '/purge',
+    handleRequest(async (req) => {
+      switch (req.query.filter) {
+        case 'disabled':
+          return await manager.purgeDirectory(PluginDeploymentStatus.DISABLED);
+        case 'backup':
+          return await manager.purgeDirectory(PluginDeploymentStatus.BACKUP);
+        default:
+          throw new ParameterExceptionPluginError(
+            'filter',
+            req.query.filter,
+            ['disabled', 'backup'],
+            true
+          );
+      }
+    })
+  );
 };

@@ -1,6 +1,6 @@
 {
   "name": "plugin-manager",
-  "version": "$npm_package_version",
+  "version": "0.0.1",
   "linkuriousVersion": "3.1.0",
   "pluginApiVersion": "1.0.0",
   "publicRoute": "public",

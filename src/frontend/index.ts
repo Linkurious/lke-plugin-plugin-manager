@@ -59,10 +59,10 @@ window.addEventListener('load', () => {
       );
     });
 
-  void fetch('api/plugins?filter=backedup')
+  void fetch('api/plugins?filter=backup')
     .then((response) => response.json())
     .then((data) => {
-      document.getElementById('backedup_plugins')!.firstChild!.textContent = JSON.stringify(
+      document.getElementById('backup_plugins')!.firstChild!.textContent = JSON.stringify(
         data,
         null,
         2

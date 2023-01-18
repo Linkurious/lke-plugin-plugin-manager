@@ -6,8 +6,6 @@ import {pipeline} from 'stream/promises';
 import tar = require('tar');
 import {glob} from 'glob';
 
-import {Manifest, PluginSource} from '../@types/plugin';
-
 import {
   AlreadyParsedPluginError,
   InvalidObjectPluginError,
@@ -18,8 +16,18 @@ import {
   PathNotFoundPluginError,
   PluginError
 } from './exceptions';
+import {PluginSource} from './PluginManager';
 
-/* eslint-disable no-underscore-dangle */
+export interface Manifest {
+  name: string;
+  version: string;
+  pluginApiVersion?: string;
+  linkuriousVersion?: string;
+  publicRoute?: string;
+  singlePageAppIndex?: string;
+  backendFiles?: string[];
+}
+
 /**
  * Parser for Linkurious Enterprise plugins.
  * Starting from a path or a Readable Stream or a Buffer,

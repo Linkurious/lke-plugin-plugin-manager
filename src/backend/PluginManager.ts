@@ -1,23 +1,30 @@
 import fs = require('fs');
 import path = require('path');
+import {Readable} from 'stream';
 
 import {glob} from 'glob';
 import fileUpload = require('express-fileupload');
 
-import {Manifest, PluginSource, SuccessfulResponse} from '../@types/plugin';
-
-import {PluginParser} from './PluginParser';
+import {Manifest, PluginParser} from './PluginParser';
 import {
   InvalidFileNamePluginError,
   InvalidSelfActionPluginError,
   UploadSizePluginError
 } from './exceptions';
 
+export type PluginSource = string | Readable | Buffer;
+
 export const enum PluginDeploymentStatus {
   DEPLOYED,
   ENABLED,
   DISABLED,
   BACKUP
+}
+
+export interface UploadSuccessfulResponse {
+  status: 'ok';
+  attribute: string;
+  attributeValue: unknown;
 }
 
 export class PluginManager {
@@ -86,7 +93,7 @@ export class PluginManager {
     return plugins;
   }
 
-  async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<SuccessfulResponse> {
+  async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<UploadSuccessfulResponse> {
     if (plugin.truncated) {
       throw new UploadSizePluginError();
     }

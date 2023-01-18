@@ -1,46 +1,41 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "composite": true,
-    "incremental": true,
+    "moduleResolution": "node",
     "module": "CommonJS",
-    "target": "ES6",
-    "outDir": "../../dist",
-    "tsBuildInfoFile": "../../dist/buildcache",
+    "target": "ESNext",
+    "outDir": ".",
     "esModuleInterop": true,
     "lib": [
       "DOM",
-      "ES2018",
-      "ES6"
+      "ESNext"
     ],
-    "sourceMap": false,
-    "inlineSourceMap": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
     "inlineSources": true,
-    "declaration": true,
-    "declarationDir": "../../dist",
+    "declaration": false,
     "removeComments": true,
     /* Strict Checks */
+    "strict": true,
     "alwaysStrict": true,
+    "skipLibCheck": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
-    "strict": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
+    "forceConsistentCasingInFileNames": true,
     /* Linter Checks */
-    "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "typeRoots": [
-      "@types/custom",
-      "../node_modules/@types"
-    ]
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": [
-    "@types/**/*.d.ts"
+    "src/**/*.ts"
   ],
-  "references": [
+  "exclude": [
+    "node_modules"
   ]
 }

@@ -1,4 +1,6 @@
-import {GenericType} from '../@types/shared';
+export type GenericType = {
+  [key: string]: GenericType;
+} & {toString: () => string};
 
 export const enum ErrorType {
   UNHANDLED = 'Unhandled Error',

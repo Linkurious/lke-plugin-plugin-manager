@@ -1,8 +1,9 @@
 import express = require('express');
 import {NextFunction, Request, Response} from 'express';
 import fileUpload = require('express-fileupload');
+import {PluginRouteOptions} from '@linkurious/rest-client';
 
-import {PluginConfig, PluginRouteOptions} from '../@types/plugin';
+import {PluginConfig} from '../@types/plugin';
 
 import {loggerFormatter, parseLinkuriousAPI} from './shared';
 import {PluginDeploymentStatus, PluginManager} from './PluginManager';
@@ -46,46 +47,15 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
     })
   );
 
-  options.router.use(async (req, res, next) => {
-    const restClient = options.getRestClient(req);
-    try {
-      /*
-       * Check Securities or other custom code which should be executed for every call
-       */
-      await parseLinkuriousAPI(restClient.auth.getCurrentUser(), (body) => {
-        if (!body.groups.find((g) => g.name === 'admin')) {
-          throw new UnauthorizedPluginError(['admin']);
-        }
-      });
-      next();
-    } catch (e) {
-      let parsedError: PluginError;
-      if (!(e instanceof PluginError)) {
-        parsedError = PluginError.parseError(e);
-        console.error(`${parsedError.name} - ${parsedError.message}. ${parsedError.stack || ''}`);
-      } else {
-        parsedError = e;
-      }
-
-      res
-        .status(parsedError.getHttpResponseCode())
-        .json({status: 'error', error: parsedError.name, message: parsedError.message});
-    }
-  });
-
-  function handleRequest(
-    fun: (req: Request, res: Response, next?: NextFunction) => Promise<unknown | void>
-  ): (req: Request, res: Response) => void {
-    return async (req, res) => {
-      try {
-        const resp = await fun(req, res);
-
-        if (resp === null || resp === undefined) {
-          res.sendStatus(204);
-        } else {
-          res.status(200).json(resp);
-        }
-      } catch (e) {
+  function respond(
+    promiseFunction: (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction
+    ) => Promise<void> | void
+  ): express.RequestHandler {
+    return (req, res, next) => {
+      Promise.resolve(promiseFunction(req, res, next)).catch((e) => {
         let parsedError: PluginError;
         if (!(e instanceof PluginError)) {
           parsedError = PluginError.parseError(e);
@@ -97,17 +67,45 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
         res
           .status(parsedError.getHttpResponseCode())
           .json({status: 'error', error: parsedError.name, message: parsedError.message});
-      }
+      });
     };
   }
+
+  function handleRequest(
+    fun: (req: Request, res: Response, next: NextFunction) => unknown | Promise<unknown>
+  ): express.RequestHandler {
+    return respond(async (req, res, next) => {
+      const resp = await Promise.resolve(fun(req, res, next));
+      if (resp === null || resp === undefined) {
+        res.sendStatus(204);
+      } else {
+        res.status(200).json(resp);
+      }
+    });
+  }
+
+  options.router.use(
+    respond(async (req, res, next) => {
+      const restClient = options.getRestClient(req);
+      /*
+       * Check Securities or other custom code which should be executed for every call
+       */
+      await parseLinkuriousAPI(restClient.auth.getCurrentUser(), (body) => {
+        if (!body.groups.find((g) => g.name === 'admin')) {
+          throw new UnauthorizedPluginError(['admin']);
+        }
+      });
+      next();
+    })
+  );
 
   /**
    * Get the manigest of this plugin
    */
   options.router.get(
     '/manifest',
-    handleRequest(async () => {
-      return Promise.resolve(manager.getPluginManagerManifest());
+    handleRequest(() => {
+      return manager.getPluginManagerManifest();
     })
   );
 

@@ -71,12 +71,16 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
     };
   }
 
+  const CUSTOM_RESPONSE = new Object();
+
   function handleRequest(
     fun: (req: Request, res: Response, next: NextFunction) => unknown | Promise<unknown>
   ): express.RequestHandler {
     return respond(async (req, res, next) => {
       const resp = await Promise.resolve(fun(req, res, next));
-      if (resp === null || resp === undefined) {
+      if (resp === CUSTOM_RESPONSE) {
+        /* The function handled the response itself */
+      } else if (resp === null || resp === undefined) {
         res.sendStatus(204);
       } else {
         res.status(200).json(resp);
@@ -235,6 +239,19 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
             true
           );
       }
+    })
+  );
+
+  /**
+   * Stream the logs of a particular plugin instance
+   *
+   * @param pluginInstance: the instance of the plugin
+   */
+  options.router.get(
+    '/logs/:pluginInstance',
+    handleRequest((req, res) => {
+      manager.getLogs(req.params.pluginInstance).pipe(res);
+      return CUSTOM_RESPONSE;
     })
   );
 };

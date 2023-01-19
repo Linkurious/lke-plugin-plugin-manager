@@ -9,6 +9,7 @@ import {Manifest, PluginParser} from './PluginParser';
 import {
   InvalidFileNamePluginError,
   InvalidSelfActionPluginError,
+  PathNotFoundPluginError,
   UploadSizePluginError
 } from './exceptions';
 
@@ -34,7 +35,7 @@ export class PluginManager {
     this.selfParser = new PluginParser(pluginSource);
   }
 
-  getPath(type: PluginDeploymentStatus): string {
+  getPath(type: PluginDeploymentStatus | 'logs'): string {
     switch (type) {
       case PluginDeploymentStatus.DEPLOYED:
         console.debug('Deployed path:', path.resolve('..'));
@@ -45,6 +46,8 @@ export class PluginManager {
         return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.disabled');
       case PluginDeploymentStatus.BACKUP:
         return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.backup');
+      case 'logs':
+        return path.join('..', '..', 'logs', 'plugins');
     }
   }
 
@@ -225,5 +228,13 @@ export class PluginManager {
     for (const file of fs.readdirSync(this.getPath(type))) {
       fs.rmSync(path.join(this.getPath(type), file), {recursive: true});
     }
+  }
+
+  getLogs(pluginInstance: string): Readable {
+    const logFile = path.join(this.getPath('logs'), `${pluginInstance}.log`);
+    if (!fs.existsSync(logFile)) {
+      throw new PathNotFoundPluginError(logFile);
+    }
+    return fs.createReadStream(logFile, {autoClose: true});
   }
 }

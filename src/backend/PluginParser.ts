@@ -152,8 +152,9 @@ export class PluginParser {
         );
       } else {
         // Plugin folder
-        for (const fileName of glob.sync(
-          path.join(this._pluginSource as string, '**/manifest.json')
+        for (const fileName of ([] as string[]).concat(
+          glob.sync(path.join(this._pluginSource as string, 'manifest.json')),
+          glob.sync(path.join(this._pluginSource as string, '*', 'manifest.json'))
         )) {
           if (this._numberOfManifestFiles === 0) {
             manifestBufferPromise = Promise.resolve(fs.readFileSync(fileName));

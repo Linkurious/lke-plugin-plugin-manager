@@ -2,94 +2,142 @@
 <html>
 
 <head>
-  <meta />
-  <title>Linkurious Enterprise Plugin Manager</title>
+    <meta />
+    <title>Linkurious Enterprise Plugin Manager</title>
 
-  <base href="/">
+    <base href="/">
 
-  <link rel="stylesheet" type="text/css" href="main.css" />
+    <!-- <link rel="stylesheet" type="text/css" href="assets/css/libs/bootstrap.min.css"> -->
+    <link rel="stylesheet" type="text/css" href="main.css" />
 </head>
 
 <body>
-  <div class="container my-5">
     <h1>Linkurious Enterprise Plugin Manager</h1>
-  </div>
+    <div class="wrapper">
+        <div class="tabs">
+            <div class="tab">
+                <input type="radio" name="css-tabs" id="tab-1" checked class="tab-switch">
+                <label for="tab-1" class="tab-label disable-select">Status</label>
+                <div class="tab-content">
+                    <div class="tab-description">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+                        labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                        laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
+                        voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+                        non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </div>
+                        <table id="statusTable">
+                            <thead>
+                                <tr>
+                                    <th>Plugin Name</th>
+                                    <th>Version</th>
+                                    <th>Plugin Instance</th>
+                                    <th>State</th>
+                                    <th>Logs</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="enabled">
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                </div>
+            </div>
+            <div class="tab">
+                <input type="radio" name="css-tabs" id="tab-2" class="tab-switch">
+                <label for="tab-2" class="tab-label disable-select">Manage Plugins</label>
+                <div class="tab-content">
+                    <div class="tab-description">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+                        labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                        laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
+                        voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+                        non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </div>
+                    <div class="table-container">
+                        <button class="button addButton" id="addButton">ADD</button>
+                        <div id="hiding-menu">
+                            <h2>Install a new plugin</h2>
+                            <input type="radio" id="test" name="test" value="test">
+                            <label for="test">Test </label>
+                             <input type="radio" id="test2" name="test2" value="test2">
+                            <label for="test2">Select a valid plugin: </label>
+                            <input type="file" id="importFile" name="importFile"><br>
+                            <div><button class="button" id="installButton">Install</button><div id="fileError"></div>
+                        </div>
+                            <p style="font-size: 12px;">(The process might take few minutes depending on the size of the
+                                package)</p>
+                        </div>
+                        <table id="manageTable">
+                            <thead>
+                                <tr>
+                                    <th> Package</th>
+                                    <th> Plugin name</th>
+                                    <th> Version</th>
+                                    <th> State</th>
+                                    <th> Manage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="enabled">
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="tab">
+                <input type="radio" name="css-tabs" id="tab-3" class="tab-switch">
+                <label for="tab-3" class="tab-label disable-select">Backups</label>
+                <div class="tab-content">
+                    <div class="tab-description">
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+                        labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco
+                        laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
+                        voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+                        non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. </div>
+                    <table id="backupTable">
+                        <thead>
+                            <tr>
+                                <th> Package</th>
 
-  <div class="container my-5">
-    <h2>Upload a plugin</h2>
-    <form enctype="multipart/form-data" action="api/upload" method="post">
-      <input id="plugin" name="plugin" type="file" />
-      <button type="submit">Upload</button>
-    </form>
-  </div>
-  <div class="container my-5">
-    <h2>Handle a plugin</h2>
-    <p>Security check: ../.pluginCache/plugin-manager</p>
-    <input id="plugin_name" type="text" value="plugin-manager-0.0.1.lke" />
-    <button id="handle_plugin_btn" type="button">Execute</button>
-    <button id="handle_plugin_clear_btn" type="button">Clear</button>
-    <fieldset>
-      <legend>Select a method</legend>
-      <div>
-        <input type="radio" id="manifest" name="plugin_action" value="manifest" checked>
-        <label for="manifest">Get manifest</label>
-      </div>
-      <div>
-        <input type="radio" id="disable" name="plugin_action" value="disable">
-        <label for="disable">Disable</label>
-      </div>
-      <div>
-        <input type="radio" id="enable" name="plugin_action" value="enable">
-        <label for="enable">Enable</label>
-      </div>
-      <div>
-        <input type="radio" id="restore" name="plugin_action" value="restore">
-        <label for="restore">Restore</label>
-      </div>
-      <div>
-        <input type="radio" id="delete" name="plugin_action" value="delete">
-        <label for="delete">Delete</label>
-      </div>
-    </fieldset>
-    <pre id="plugin_handle_answer">
-      <code>
-      </code>
-    </pre>
-  </div>
+                                <th> Manage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="enabled">
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <div class="container my-5">
-    <h2>Show manifest</h2>
-    <pre id="plugin_manifest">
-      <code>
-      </code>
-    </pre>
-  </div>
+    <div id="spinner">
+        <img src="assets/spinner.gif" width="50" height="50" />
+    </div>
 
-  <div class="container my-5">
-    <h2>List of ACTIVE plugins</h2>
-    <pre id="active_plugins">
-      <code>
-      </code>
-    </pre>
-  </div>
-  <div class="container my-5">
-    <h2>List of DISABLED plugins</h2>
-    <pre id="disabled_plugins">
-      <code>
-      </code>
-    </pre>
-  </div>
-  <div class="container my-5">
-    <h2>List of BACKEDUP plugins</h2>
-    <pre id="backup_plugins">
-      <code>
-      </code>
-    </pre>
-  </div>
-
-  <!--------------------Scripts-------------------->
-  <script src="bundles/index.js"></script>
-
+    <div id="errorPopup">
+        <div class="popup">
+            <a class="close" id="closePopup">ⓧ</a>
+            <div id="errorDisplay">
+                <h2>Error</h2>
+                <p id="errorMessage"></p>
+            </div>
+        </div>
+    </div>
+    <script src="bundles/index.js""></script>
 </body>
 
 </html>

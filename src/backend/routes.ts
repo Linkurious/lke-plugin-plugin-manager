@@ -107,6 +107,14 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
    * Get the manigest of this plugin
    */
   options.router.get(
+    '/authorize',
+    handleRequest(() => null)
+  );
+
+  /**
+   * Get the manigest of this plugin
+   */
+  options.router.get(
     '/manifest',
     handleRequest(() => {
       return manager.getPluginManagerManifest();

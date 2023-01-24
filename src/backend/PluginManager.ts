@@ -1,7 +1,7 @@
-import fs = require('fs');
 import path = require('path');
 import {Readable} from 'stream';
 
+import fs = require('fs-extra');
 import {glob} from 'glob';
 import fileUpload = require('express-fileupload');
 
@@ -151,36 +151,59 @@ export class PluginManager {
     return plugins;
   }
 
-  private async installPlugin<Source extends PluginSource, InstallArgs extends unknown[]>(
-    pluginSource: Source,
+  private async handlePlugin<SrcType extends PluginSource, DstType extends string | undefined, T>(
+    src: SrcType,
+    dest: DstType,
+    handler: (pluginParser: PluginParser, src: SrcType, dest: DstType) => T | Promise<T>
+  ): Promise<T> {
+    const pluginParser = new PluginParser(src);
+    if (await pluginParser.parse()) {
+      if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
+        throw new InvalidSelfActionPluginError();
+      } else {
+        return Promise.resolve(handler(pluginParser, src, dest));
+      }
+    } else {
+      throw pluginParser.error;
+    }
+  }
+
+  private async copyPluginOnFileSystem(src: string, dest: string, move: boolean) {
+    if (fs.existsSync(dest)) {
+      fs.rmSync(dest, {recursive: true});
+    }
+
+    if (move) {
+      fs.moveSync(src, dest);
+    } else {
+      fs.copySync(src, dest);
+    }
+  }
+
+  private async installPlugin<SrcType extends PluginSource, InstallArgs extends unknown[]>(
+    pluginSource: SrcType,
     installProcedure: (
-      pluginSource: Source,
+      pluginSource: SrcType,
       destPath: string,
       ...args: InstallArgs
     ) => void | Promise<void>,
     ...args: InstallArgs
   ): Promise<UploadSuccessfulResponse> {
-    const pluginParser = new PluginParser(pluginSource);
-    if (await pluginParser.parse()) {
-      if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
-        throw new InvalidSelfActionPluginError();
-      } else {
-        const dest = path.join(
-          this.getPath(PluginDeploymentStatus.ENABLED),
-          pluginParser.normalizedName
+    return this.handlePlugin(pluginSource, undefined, async (pluginParser, pluginSource) => {
+      const dest = path.join(
+        this.getPath(PluginDeploymentStatus.ENABLED),
+        pluginParser.normalizedName
+      );
+      if (fs.existsSync(dest)) {
+        await this.copyPluginOnFileSystem(
+          dest,
+          path.join(this.getPath(PluginDeploymentStatus.BACKUP), pluginParser.normalizedName),
+          true
         );
-        if (fs.existsSync(dest)) {
-          fs.renameSync(
-            dest,
-            path.join(this.getPath(PluginDeploymentStatus.BACKUP), pluginParser.normalizedName)
-          );
-        }
-        await installProcedure(pluginSource, dest, ...args);
-        return {status: 'ok', attribute: 'fileName', attributeValue: pluginParser.normalizedName};
       }
-    } else {
-      throw pluginParser.error;
-    }
+      await installProcedure(pluginSource, dest, ...args);
+      return {status: 'ok', attribute: 'fileName', attributeValue: pluginParser.normalizedName};
+    });
   }
 
   public async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<UploadSuccessfulResponse> {
@@ -209,7 +232,7 @@ export class PluginManager {
     const pluginPath = path.join(this.getPath(PluginDeploymentStatus.AVAILABLE), pluginSrc[0]);
 
     return await this.installPlugin(pluginPath, (srcPath, destPath) =>
-      fs.copyFileSync(srcPath, destPath)
+      this.copyPluginOnFileSystem(srcPath, destPath, false)
     );
   }
 
@@ -241,74 +264,48 @@ export class PluginManager {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName);
-    const pluginParser = new PluginParser(srcFolder);
-    if (await pluginParser.parse()) {
-      if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
-        throw new InvalidSelfActionPluginError();
-      } else {
-        fs.renameSync(
-          srcFolder,
-          path.join(this.getPath(PluginDeploymentStatus.DISABLED), fileName)
-        );
-        return;
-      }
-    } else {
-      throw pluginParser.error;
-    }
+    return this.handlePlugin(
+      srcFolder,
+      path.join(this.getPath(PluginDeploymentStatus.DISABLED), fileName),
+      async (pluginParser, srcFolder, destFolder) =>
+        this.copyPluginOnFileSystem(srcFolder, destFolder, true)
+    );
   }
 
   public async enablePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.DISABLED), fileName);
-    const pluginParser = new PluginParser(srcFolder);
-    if (await pluginParser.parse()) {
-      if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
-        throw new InvalidSelfActionPluginError();
-      } else {
-        fs.renameSync(srcFolder, path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName));
-        return;
-      }
-    } else {
-      throw pluginParser.error;
-    }
+    return this.handlePlugin(
+      srcFolder,
+      path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName),
+      async (pluginParser, srcFolder, destFolder) =>
+        this.copyPluginOnFileSystem(srcFolder, destFolder, true)
+    );
   }
 
   public async restorePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.BACKUP), fileName);
-    const pluginParser = new PluginParser(srcFolder);
-    if (await pluginParser.parse()) {
-      if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
-        throw new InvalidSelfActionPluginError();
-      } else {
-        fs.copyFileSync(
-          srcFolder,
-          path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName)
-        );
-        return;
-      }
-    } else {
-      throw pluginParser.error;
-    }
+    return this.handlePlugin(
+      srcFolder,
+      path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName),
+      async (pluginParser, srcFolder, destFolder) =>
+        this.copyPluginOnFileSystem(srcFolder, destFolder, false)
+    );
   }
 
   public async deletePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName);
-    const pluginParser = new PluginParser(srcFolder);
-    if (await pluginParser.parse()) {
-      if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
-        throw new InvalidSelfActionPluginError();
-      } else {
-        fs.renameSync(srcFolder, path.join(this.getPath(PluginDeploymentStatus.BACKUP), fileName));
-        return;
-      }
-    } else {
-      throw pluginParser.error;
-    }
+    return this.handlePlugin(
+      srcFolder,
+      path.join(this.getPath(PluginDeploymentStatus.BACKUP), fileName),
+      async (pluginParser, srcFolder, destFolder) =>
+        this.copyPluginOnFileSystem(srcFolder, destFolder, true)
+    );
   }
 
   public async purgeDirectory(

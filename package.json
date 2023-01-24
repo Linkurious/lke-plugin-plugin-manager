@@ -48,12 +48,15 @@
   "bundledDependencies": [
     "express",
     "express-fileupload",
+    "fs-extra",
     "glob",
     "tar"
   ],
   "dependencies": {
+    "@types/fs-extra": "11.0.1",
     "express": "4.17.3",
     "express-fileupload": "1.4.0",
+    "fs-extra": "11.1.0",
     "glob": "8.0.3",
     "tar": "6.1.12"
   },

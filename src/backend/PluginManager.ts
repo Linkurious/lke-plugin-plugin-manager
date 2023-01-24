@@ -49,14 +49,17 @@ export class PluginManager {
       '/usr/src/linkurious' // Official Docker path
     ];
     for (const p of lkeRootPaths) {
-      const testingPluginCacheRealpath = fs.realpathSync(path.join(p, 'data', '.pluginCache'));
-      if (
-        testingPluginCacheRealpath === pluginCacheRealpath &&
-        // This is needed to cover the case of Official Docker image
-        fs.existsSync(path.join(p, 'system'))
-      ) {
-        this.lkeRoot = p;
-        break;
+      const testingPluginCache = path.join(p, 'data', '.pluginCache');
+      if (fs.existsSync(testingPluginCache)) {
+        const testingPluginCacheRealpath = fs.realpathSync(testingPluginCache);
+        if (
+          testingPluginCacheRealpath === pluginCacheRealpath &&
+          // This is needed to cover the case of Official Docker image
+          fs.existsSync(path.join(p, 'system'))
+        ) {
+          this.lkeRoot = p;
+          break;
+        }
       }
     }
 

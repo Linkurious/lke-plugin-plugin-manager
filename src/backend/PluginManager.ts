@@ -10,12 +10,14 @@ import {
   InvalidFileNamePluginError,
   InvalidSelfActionPluginError,
   PathNotFoundPluginError,
+  PluginNotFoundPluginError,
   UploadSizePluginError
 } from './exceptions';
 
 export type PluginSource = string | Readable | Buffer;
 
 export const enum PluginDeploymentStatus {
+  AVAILABLE,
   DEPLOYED,
   ENABLED,
   DISABLED,
@@ -29,29 +31,78 @@ export interface UploadSuccessfulResponse {
 }
 
 export class PluginManager {
+  private readonly lkeRoot: string | undefined;
   private readonly selfParser: PluginParser;
 
-  constructor(pluginSource: PluginSource = '.') {
+  public constructor(
+    lkeRoot: string = path.join('..', '..', '..'),
+    pluginSource: PluginSource = '.'
+  ) {
+    // Try to discover the lkeRoot path based on relative paths
+    // Windows: LKE doesn't work with shortcuts to data data folder
+    // Linux: it may fail in case of multiple symbolic links in the path
+    // Official Docker: it's the fallback path
+    const pluginCacheRealpath = fs.realpathSync(path.resolve(path.join('..')));
+    const lkeRootPaths = [
+      path.resolve(lkeRoot), // default path
+      '/opt/linkurious-linux', // Linux suggested installation path
+      '/usr/src/linkurious' // Official Docker path
+    ];
+    for (const p of lkeRootPaths) {
+      const testingPluginCacheRealpath = fs.realpathSync(path.join(p, 'data', '.pluginCache'));
+      if (
+        testingPluginCacheRealpath === pluginCacheRealpath &&
+        // This is needed to cover the case of Official Docker image
+        fs.existsSync(path.join(p, 'system'))
+      ) {
+        this.lkeRoot = p;
+        break;
+      }
+    }
+
+    if (!this.lkeRoot) {
+      console.warn('Root folder of Linkurious Enterprise not found.');
+    } else {
+      console.info('Identified Linkurious Enterprise system root:', this.lkeRoot);
+    }
+
     this.selfParser = new PluginParser(pluginSource);
   }
 
-  getPath(type: PluginDeploymentStatus | 'logs'): string {
+  public getPath(type: PluginDeploymentStatus | 'logs'): string {
     switch (type) {
+      case PluginDeploymentStatus.AVAILABLE:
+        if (this.lkeRoot) {
+          return path.join(this.lkeRoot, 'system', 'plugins-available');
+        } else {
+          throw new PathNotFoundPluginError(type.toString());
+        }
       case PluginDeploymentStatus.DEPLOYED:
-        console.debug('Deployed path:', path.resolve('..'));
-        return path.join('..');
+        if (this.lkeRoot) {
+          return path.join(this.lkeRoot, 'data', '.pluginCache');
+        } else {
+          return path.join('..');
+        }
       case PluginDeploymentStatus.ENABLED:
-        return path.join('..', '..', 'plugins');
+        if (this.lkeRoot) {
+          return path.join(this.lkeRoot, 'data', 'plugins');
+        } else {
+          return path.join('..', '..', 'plugins');
+        }
       case PluginDeploymentStatus.DISABLED:
         return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.disabled');
       case PluginDeploymentStatus.BACKUP:
         return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.backup');
       case 'logs':
-        return path.join('..', '..', 'logs', 'plugins');
+        if (this.lkeRoot) {
+          return path.join(this.lkeRoot, 'data', 'logs', 'plugins');
+        } else {
+          return path.join('..', '..', 'logs', 'plugins');
+        }
     }
   }
 
-  async initialize(): Promise<void> {
+  public async initialize(): Promise<void> {
     // Create local auxiliary folders
     if (!fs.existsSync(this.getPath(PluginDeploymentStatus.DISABLED))) {
       fs.mkdirSync(this.getPath(PluginDeploymentStatus.DISABLED));
@@ -68,7 +119,7 @@ export class PluginManager {
   /**
    * Get the manigest of this plugin
    */
-  getPluginManagerManifest(): Manifest | null {
+  public getPluginManagerManifest(): Manifest | null {
     return this.selfParser.manifest;
   }
 
@@ -78,9 +129,13 @@ export class PluginManager {
    * @param folder: the folder in the FileSystem to scan
    * @returns a map of file names and their manifest
    */
-  async getListOfPlugins(
+  public async getListOfPlugins(
     folder: PluginDeploymentStatus = PluginDeploymentStatus.ENABLED
   ): Promise<Record<string, Manifest>> {
+    if (folder === PluginDeploymentStatus.AVAILABLE && !this.lkeRoot) {
+      return {};
+    }
+
     const plugins = {} as Record<string, Manifest>;
     for (const plugin of glob.sync(
       path.join(this.getPath(folder), folder === PluginDeploymentStatus.DEPLOYED ? '*' : '*.lke')
@@ -90,38 +145,72 @@ export class PluginManager {
       if (await pluginParser.parse()) {
         plugins[fileName] = pluginParser.manifest!;
       } else {
-        console.warn(`Found ${fileName} but it's not a valid plugin`);
+        console.warn(`Found ${fileName} but it's not a valid plugin:`, pluginParser.error);
       }
     }
     return plugins;
   }
 
-  async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<UploadSuccessfulResponse> {
-    if (plugin.truncated) {
-      throw new UploadSizePluginError();
-    }
-
-    const pluginParser = new PluginParser(plugin.tempFilePath);
+  private async installPlugin<Source extends PluginSource, InstallArgs extends unknown[]>(
+    pluginSource: Source,
+    installProcedure: (
+      pluginSource: Source,
+      destPath: string,
+      ...args: InstallArgs
+    ) => void | Promise<void>,
+    ...args: InstallArgs
+  ): Promise<UploadSuccessfulResponse> {
+    const pluginParser = new PluginParser(pluginSource);
     if (await pluginParser.parse()) {
       if (pluginParser.manifest!.name === this.selfParser.manifest!.name) {
         throw new InvalidSelfActionPluginError();
       } else {
-        const destFolder = path.join(
+        const dest = path.join(
           this.getPath(PluginDeploymentStatus.ENABLED),
           pluginParser.normalizedName
         );
-        if (fs.existsSync(destFolder)) {
+        if (fs.existsSync(dest)) {
           fs.renameSync(
-            destFolder,
+            dest,
             path.join(this.getPath(PluginDeploymentStatus.BACKUP), pluginParser.normalizedName)
           );
         }
-        await plugin.mv(destFolder);
+        await installProcedure(pluginSource, dest, ...args);
         return {status: 'ok', attribute: 'fileName', attributeValue: pluginParser.normalizedName};
       }
     } else {
       throw pluginParser.error;
     }
+  }
+
+  public async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<UploadSuccessfulResponse> {
+    if (plugin.truncated) {
+      throw new UploadSizePluginError();
+    }
+    return await this.installPlugin(
+      plugin.tempFilePath,
+      (srcPath, destPath, plugin) => plugin.mv(destPath),
+      plugin
+    );
+  }
+
+  public async installAvailablePlugin(pluginName: string): Promise<UploadSuccessfulResponse> {
+    if (!this.lkeRoot) {
+      // Don't try to read in the fallback directory
+      throw new PluginNotFoundPluginError(pluginName);
+    }
+
+    const pluginSrc = fs
+      .readdirSync(this.getPath(PluginDeploymentStatus.AVAILABLE))
+      .filter((f) => f.startsWith(`lke-plugin-${pluginName}`));
+    if (pluginSrc.length !== 1) {
+      throw new PluginNotFoundPluginError(pluginName);
+    }
+    const pluginPath = path.join(this.getPath(PluginDeploymentStatus.AVAILABLE), pluginSrc[0]);
+
+    return await this.installPlugin(pluginPath, (srcPath, destPath) =>
+      fs.copyFileSync(srcPath, destPath)
+    );
   }
 
   public validateFileName(fileName: string): void {
@@ -136,7 +225,7 @@ export class PluginManager {
    *
    * @param fileName: the file name of the plugin, if null
    */
-  async getPluginManifest(fileName: string): Promise<Manifest> {
+  public async getPluginManifest(fileName: string): Promise<Manifest> {
     this.validateFileName(fileName);
 
     const pluginPath = path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName);
@@ -168,7 +257,7 @@ export class PluginManager {
     }
   }
 
-  async enablePlugin(fileName: string): Promise<void> {
+  public async enablePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.DISABLED), fileName);
@@ -185,7 +274,7 @@ export class PluginManager {
     }
   }
 
-  async restorePlugin(fileName: string): Promise<void> {
+  public async restorePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.BACKUP), fileName);
@@ -205,7 +294,7 @@ export class PluginManager {
     }
   }
 
-  async deletePlugin(fileName: string): Promise<void> {
+  public async deletePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName);
@@ -222,7 +311,7 @@ export class PluginManager {
     }
   }
 
-  async purgeDirectory(
+  public async purgeDirectory(
     type: PluginDeploymentStatus.DISABLED | PluginDeploymentStatus.BACKUP
   ): Promise<void> {
     for (const file of fs.readdirSync(this.getPath(type))) {
@@ -230,7 +319,7 @@ export class PluginManager {
     }
   }
 
-  getLogs(pluginInstance: string): Readable {
+  public getLogs(pluginInstance: string): Readable {
     const logFile = path.join(this.getPath('logs'), `${pluginInstance}.log`);
     if (!fs.existsSync(logFile)) {
       throw new PathNotFoundPluginError(logFile);

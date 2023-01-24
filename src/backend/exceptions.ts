@@ -101,10 +101,20 @@ export class UploadSizePluginError extends PluginError {
   }
 }
 
+export class PluginNotFoundPluginError extends PluginError {
+  constructor(pluginName: string) {
+    super(
+      `The plugin '${pluginName}' does not exists among the available plugins in this distribution.`
+    );
+    this.httpResponseCode = 404;
+    this.name = ErrorType.INVALID_PLUGIN;
+  }
+}
+
 export class PathNotFoundPluginError extends PluginError {
   constructor(path: string) {
     super(`The path '${path}' does not exists, check the spell.`);
-    this.httpResponseCode = 400;
+    this.httpResponseCode = 404;
     this.name = ErrorType.INVALID_PLUGIN;
   }
 }

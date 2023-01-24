@@ -130,14 +130,28 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   );
 
   /**
+   * Install an official plugin from the `available` folder of the software build
+   *
+   * @param plugin: the file
+   */
+  options.router.post(
+    '/install-available/:pluginName',
+    handleRequest(async (req) => {
+      return await manager.installAvailablePlugin(req.params.pluginName);
+    })
+  );
+
+  /**
    * Get the list of the plugins files in a specific folder
    *
-   * @param filter: null | "deployed" | "enabled" | "disabled" | "backup"
+   * @param filter: null | "available" | "deployed" | "enabled" | "disabled" | "backup"
    */
   options.router.get(
     '/plugins',
     handleRequest(async (req) => {
       switch (req.query.filter) {
+        case 'available':
+          return await manager.getListOfPlugins(PluginDeploymentStatus.AVAILABLE);
         case 'deployed':
           return await manager.getListOfPlugins(PluginDeploymentStatus.DEPLOYED);
         case undefined:
@@ -151,7 +165,7 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
           throw new ParameterExceptionPluginError(
             'filter',
             req.query.filter,
-            ['deployed', 'enabled', 'disabled', 'backup'],
+            ['available', 'deployed', 'enabled', 'disabled', 'backup'],
             true
           );
       }

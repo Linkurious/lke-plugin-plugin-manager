@@ -117,8 +117,6 @@ async function managePlugins() {
       for (let i = 0; i < plugins.length; i++) {
         const act: LKEPLugin = res[plugins[i]] as LKEPLugin;
 
-        console.log(plugins[i]);
-
         const tr = document.createElement('tr');
 
         //package
@@ -210,8 +208,11 @@ async function pluginStatus() {
         //instance
         const instance = document.createElement('td');
         instance.setAttribute('data-plugin', act.basePath);
-        instance.innerHTML = `<a href="../${act.basePath}" target="_blank">${act.basePath}</a>`;
-        instance.setAttribute('href', 'www.google.com');
+        if (act.basePath === undefined) {
+          instance.innerText = act.basePath;
+        } else {
+          instance.innerHTML = `<a href="../${act.basePath}" target="_blank">${act.basePath}</a>`;
+        }
 
         tr.append(instance);
 
@@ -224,6 +225,8 @@ async function pluginStatus() {
           span.classList.add('tag-active');
         } else {
           span.classList.add('tag-disabled');
+          span.setAttribute('message', act.error);
+          span.classList.add('tooltip');
         }
         state.append(span);
         tr.append(state);
@@ -339,7 +342,6 @@ async function changeState(plugin: string) {
   try {
     if (tag.getAttribute('class') === 'tag-active') {
       let request = await fetch(`api/plugin/${plugin}/disable`, {method: 'PATCH'});
-      console.log(request.status);
       if (request.status === 204) {
         tag.innerHTML = 'DISABLED';
         tag.setAttribute('class', 'tag-disabled');
@@ -350,7 +352,6 @@ async function changeState(plugin: string) {
       }
     } else {
       let request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
-      console.log(request.status);
       if (request.status === 204) {
         tag.innerHTML = 'ENABLED';
         tag.setAttribute('class', 'tag-active');
@@ -367,32 +368,176 @@ async function changeState(plugin: string) {
   }
 }
 
-async function readFile() {
-  let input = document.getElementById('importFile') as HTMLInputElement;
-  input = input.files[0];
-
-  if (!input || !input.name.endsWith('.lke')) {
-    const error = document.getElementById('fileError') as HTMLDivElement;
-    error.innerHTML = 'Select a valid file! ';
+async function restartPLugins() {
+  startWaiting();
+  const request = await fetch('../../api/admin/plugins/restart-all', {method: 'POST'});
+  if (request.status === 204) {
+    await pluginStatus();
   } else {
-    startWaiting();
+    showErrorPopup(await request.text());
   }
   stopWaiting();
 }
 
-window.addEventListener('load', () => {
+async function addPlugin() {
+  try {
+    const request = await fetch(`api/plugins?filter=available`);
+    const container = document.querySelector('#radioContainer')! as HTMLFormElement;
+
+    const res = (await request.json()) as Record<string, LKEPLugin>;
+    const plugins = Object.keys(res);
+
+    for (let i = 0; i < plugins.length; i++) {
+      const act: LKEPLugin = res[plugins[i]] as LKEPLugin;
+      //radio
+      const radio = document.createElement('input');
+      radio.setAttribute('value', act.name);
+      radio.setAttribute('type', 'radio');
+      radio.setAttribute('name', 'addPluginRadio');
+      radio.setAttribute('id', `radio-${act.name}`);
+      if (act.name === 'plugin-manager') {
+        radio.disabled = true;
+      }
+      //label
+      const label = document.createElement('label');
+      label.setAttribute('for', `radio-${act.name}`);
+      label.innerText = `official plugin: ${act.name} v${act.version}`;
+
+      container.appendChild(radio);
+      container.appendChild(label);
+      container.appendChild(document.createElement('br'));
+    }
+    const radio = document.createElement('input');
+    // radio
+    radio.setAttribute('value', 'upload');
+    radio.setAttribute('type', 'radio');
+    radio.setAttribute('name', 'addPluginRadio');
+    radio.setAttribute('id', 'radio-upload');
+
+    radio.checked = true;
+    // label
+    const label = document.createElement('label');
+    label.setAttribute('for', 'radio-upload');
+    label.setAttribute('id', 'custom-plugin-manifest')
+    label.innerHTML = 'upload a plugin: n/a';
+    // file
+    const file = document.createElement('input');
+    file.setAttribute('type', 'file');
+    file.setAttribute('id', 'importFile');
+    file.setAttribute('name', 'importFile');
+    file.onchange = newPluginParsing;
+
+
+    container.appendChild(radio);
+    container.appendChild(label);
+    container.appendChild(file);
+    container.appendChild(document.createElement('br'));
+  } catch (error) {
+    showErrorPopup(error as string);
+  }
+}
+
+async function installPlugin() {
+  startWaiting();
+  const radio = document.getElementsByName('addPluginRadio') as NodeListOf<HTMLInputElement>;
+
+  for (let i = 0; i < radio.length; i++) {
+    if (radio[i].checked) {
+      if (radio[i].value !== 'upload') {
+        const error = document.getElementById('fileError') as HTMLDivElement;
+        error.innerText = '';
+        const request = await fetch(`api/install-available/${radio[i].value}`, {method: 'POST'});
+        if (request.status === 200) {
+          await managePlugins();
+          stopWaiting();
+        }
+      } else {
+        await readFile();
+      }
+    }
+  }
+}
+
+async function readFile() {
+  const inputFile = document.getElementById('importFile') as HTMLInputElement;
+  const error = document.getElementById('fileError') as HTMLDivElement;
+
+  if (inputFile && inputFile.files && inputFile.files.length > 0) {
+    // clear possible previous file errors
+    error.innerHTML = '';
+    startWaiting();
+    const plugin = inputFile.files[0];
+    const data = new FormData();
+    data.append('plugin', plugin);
+
+    const response = await fetch('api/upload', {
+      method: 'POST',
+      body: data
+    });
+    if (response.status >= 200 && response.status < 300) {
+      await managePlugins();
+    } else {
+      const close = document.getElementById('closePopup') as HTMLElement;
+      close.parentElement?.removeChild(close);
+
+      document.getElementById('errorPopup')?.classList.add('hider');
+
+      showErrorPopup(JSON.stringify(response));
+    }
+  } else {
+    error.innerText = 'Select a valid file!';
+  }
+  stopWaiting();
+}
+
+async function newPluginParsing() {
+  const inputFile = document.getElementById('importFile') as HTMLInputElement;
+
+  if (inputFile && inputFile.files) {
+    startWaiting();
+    if (inputFile.files.length === 1) {
+      const plugin = inputFile.files[0];
+      const data = new FormData();
+      data.append('plugin', plugin);
+
+      const response = await fetch('api/manifest', {
+        method: 'POST',
+        body: data
+      });
+
+      if (response.status >= 200 && response.status < 300) {
+        const manifest = (await response.json()) as Manifest;
+        document.getElementById('custom-plugin-manifest')!.innerText = `upload a plugin: ${manifest.name} v${manifest.version}`;
+      } else {
+        showErrorPopup(await response.text());
+        inputFile.value = '';
+      }
+    } else {
+
+      document.getElementById('custom-plugin-manifest')!.innerText = 'upload a plugin: n/a';
+    }
+  } else {
+    const error = document.getElementById('fileError') as HTMLDivElement;
+    error.innerHTML = 'Select a valid file! ';
+  }
+  stopWaiting();
+}
+
+window.addEventListener('load', function () {
   fetch(`api/authorize`)
     .then(async (response) => {
       if (response.status === 204) {
         document.getElementById('addButton')!.onclick = toggleAddMenu;
         document.getElementById('closePopup')!.onclick = closeErrorPopup;
-        document.getElementById('installButton')!.onclick = readFile;
+        document.getElementById('installButton')!.onclick = installPlugin;
+        document.getElementById('restartButton')!.onclick = restartPLugins;
 
         document.getElementById('tab-1')!.onclick = pluginStatus;
         document.getElementById('tab-2')!.onclick = managePlugins;
         document.getElementById('tab-3')!.onclick = backup;
 
         await pluginStatus();
+        await addPlugin();
       } else {
         const close = document.getElementById('closePopup') as HTMLElement;
         close.parentElement?.removeChild(close);

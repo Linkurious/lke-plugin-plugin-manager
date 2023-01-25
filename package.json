@@ -22,7 +22,7 @@
     "lint": "eslint --fix --ext .ts .",
     "lint:ci-deactivated": "eslint -f checkstyle -o reports/checkstyle.xml .",
     "tsc": "tsc -b",
-    "frontend": "esbuild src/frontend/index.ts --bundle --outfile=public/bundles/index.js --target=es6 --platform=node --sourcemap",
+    "frontend": "esbuild src/frontend/index.ts --bundle --outfile=public/bundles/index.js --target=es6 --platform=browser --sourcemap",
     "build": "npm run tsc && npm run frontend",
     "postbuild": "npm pack && mv $(npm run --silent npm-package-name) $(npm run --silent artifact-name)",
     "deploy:login": "curl -X POST $npm_config_deploy_url/api/auth/login --cookie-jar 'lke.cookie' -H 'Content-type: application/json' -d '{ \"usernameOrEmail\": \"'$npm_config_deploy_user'\", \"password\": \"'$npm_config_deploy_pass'\" }'",

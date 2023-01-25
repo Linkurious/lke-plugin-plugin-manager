@@ -11,6 +11,7 @@ import {
   ParameterExceptionPluginError,
   PluginError,
   UnauthorizedPluginError,
+  UploadPluginError,
   UploadSizePluginError
 } from './exceptions';
 
@@ -104,20 +105,41 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   );
 
   /**
-   * Get the manigest of this plugin
+   * Validate the user access rights
    */
   options.router.get(
     '/authorize',
+    // It does anything because the whole logis in a middleware
     handleRequest(() => null)
   );
 
   /**
-   * Get the manigest of this plugin
+   * Get the manifest of this plugin
    */
   options.router.get(
     '/manifest',
     handleRequest(() => {
       return manager.getPluginManagerManifest();
+    })
+  );
+
+  /**
+   * Get the manifest of a specific plugin
+   *
+   * @param plugin: the file
+   */
+  options.router.post(
+    '/manifest',
+    handleRequest(async (req) => {
+      if (!req.files || !req.files.plugin || Array.isArray(req.files.plugin)) {
+        throw new UploadPluginError();
+      }
+
+      if (req.files.plugin.truncated) {
+        throw new UploadSizePluginError();
+      }
+
+      return await manager.getPluginManifest(req.files.plugin.tempFilePath);
     })
   );
 
@@ -130,6 +152,10 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
     '/upload',
     handleRequest(async (req) => {
       if (!req.files || !req.files.plugin || Array.isArray(req.files.plugin)) {
+        throw new UploadPluginError();
+      }
+
+      if (req.files.plugin.truncated) {
         throw new UploadSizePluginError();
       }
 

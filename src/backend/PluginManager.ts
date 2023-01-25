@@ -10,8 +10,7 @@ import {
   InvalidFileNamePluginError,
   InvalidSelfActionPluginError,
   PathNotFoundPluginError,
-  PluginNotFoundPluginError,
-  UploadSizePluginError
+  PluginNotFoundPluginError
 } from './exceptions';
 
 export type PluginSource = string | Readable | Buffer;
@@ -120,7 +119,7 @@ export class PluginManager {
   }
 
   /**
-   * Get the manigest of this plugin
+   * Get the manifest of this plugin
    */
   public getPluginManagerManifest(): Manifest | null {
     return this.selfParser.manifest;
@@ -210,9 +209,6 @@ export class PluginManager {
   }
 
   public async uploadPlugin(plugin: fileUpload.UploadedFile): Promise<UploadSuccessfulResponse> {
-    if (plugin.truncated) {
-      throw new UploadSizePluginError();
-    }
     return await this.installPlugin(
       plugin.tempFilePath,
       (srcPath, destPath, plugin) => plugin.mv(destPath),
@@ -249,13 +245,15 @@ export class PluginManager {
   /**
    * Get the manifest of a specific plugin
    *
-   * @param fileName: the file name of the plugin, if null
+   * @param pluginSource: the plugin source
    */
-  public async getPluginManifest(fileName: string): Promise<Manifest> {
-    this.validateFileName(fileName);
+  public async getPluginManifest(pluginSource: PluginSource): Promise<Manifest> {
+    if (pluginSource === 'string') {
+      this.validateFileName(pluginSource);
+      pluginSource = path.join(this.getPath(PluginDeploymentStatus.ENABLED), pluginSource);
+    }
 
-    const pluginPath = path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName);
-    const pluginParser = new PluginParser(pluginPath);
+    const pluginParser = new PluginParser(pluginSource);
     if (await pluginParser.parse()) {
       return pluginParser.manifest!;
     } else {

@@ -1,4 +1,4 @@
-import {Manifest} from '../backend/PluginParser';
+import { Manifest } from '../backend/PluginParser';
 
 // FIXME: replace with import {InstalledPlugin} from '@linkurious/rest-client';
 type LKEPLugin = {
@@ -97,9 +97,9 @@ async function managePlugins() {
 
         if (act.name === 'plugin-manager') {
           disable.disabled = true;
-          disable.addEventListener('click', () => {});
+          disable.addEventListener('click', () => { });
           remove.disabled = true;
-          remove.addEventListener('click', () => {});
+          remove.addEventListener('click', () => { });
         }
 
         tbody.appendChild(tr);
@@ -306,7 +306,7 @@ async function backup() {
 async function removePlugin(plugin: string) {
   startWaiting();
   try {
-    const request = await fetch(`api/plugin/${plugin}`, {method: 'DELETE'});
+    const request = await fetch(`api/plugin/${plugin}`, { method: 'DELETE' });
     if (request.status === 204) {
       const elem = document.getElementById(`manage-${plugin}`) as HTMLTableRowElement;
       elem.parentNode?.removeChild(elem);
@@ -323,7 +323,7 @@ async function removePlugin(plugin: string) {
 async function restorePlugin(plugin: string) {
   startWaiting();
   try {
-    const request = await fetch(`api/plugin/${plugin}/restore`, {method: 'PATCH'});
+    const request = await fetch(`api/plugin/${plugin}/restore`, { method: 'PATCH' });
     if (request.status !== 204) {
       const error: Error = (await request.json()) as Error;
       showErrorPopup(error.message);
@@ -341,7 +341,7 @@ async function changeState(plugin: string) {
   const button = document.querySelector(`button[data-plugin="${plugin}"]`) as HTMLButtonElement;
   try {
     if (tag.getAttribute('class') === 'tag-active') {
-      let request = await fetch(`api/plugin/${plugin}/disable`, {method: 'PATCH'});
+      let request = await fetch(`api/plugin/${plugin}/disable`, { method: 'PATCH' });
       if (request.status === 204) {
         tag.innerHTML = 'DISABLED';
         tag.setAttribute('class', 'tag-disabled');
@@ -351,7 +351,7 @@ async function changeState(plugin: string) {
         showErrorPopup(error.message);
       }
     } else {
-      let request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
+      let request = await fetch(`api/plugin/${plugin}/enable`, { method: 'PATCH' });
       if (request.status === 204) {
         tag.innerHTML = 'ENABLED';
         tag.setAttribute('class', 'tag-active');
@@ -370,7 +370,7 @@ async function changeState(plugin: string) {
 
 async function restartPLugins() {
   startWaiting();
-  const request = await fetch('../../api/admin/plugins/restart-all', {method: 'POST'});
+  const request = await fetch('../../api/admin/plugins/restart-all', { method: 'POST' });
   if (request.status === 204) {
     await pluginStatus();
   } else {
@@ -446,7 +446,7 @@ async function installPlugin() {
       if (radio[i].value !== 'upload') {
         const error = document.getElementById('fileError') as HTMLDivElement;
         error.innerText = '';
-        const request = await fetch(`api/install-available/${radio[i].value}`, {method: 'POST'});
+        const request = await fetch(`api/install-available/${radio[i].value}`, { method: 'POST' });
         if (request.status === 200) {
           await managePlugins();
           stopWaiting();

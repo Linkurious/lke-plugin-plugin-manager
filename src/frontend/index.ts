@@ -1,14 +1,5 @@
-import { Manifest } from '../backend/PluginParser';
-
-// FIXME: replace with import {InstalledPlugin} from '@linkurious/rest-client';
-type LKEPLugin = {
-  filename: string;
-  name: string;
-  version: string;
-  basePath: string;
-  state: string;
-  error: string;
-};
+import {Manifest} from '../backend/PluginParser';
+import { InstalledPlugin } from '@linkurious/rest-client';
 
 function startWaiting() {
   document.getElementById('spinner')?.classList.add('show');
@@ -45,7 +36,7 @@ async function managePlugins() {
       let plugins = Object.keys(res);
 
       for (let i = 0; i < plugins.length; i++) {
-        const act: LKEPLugin = res[plugins[i]] as LKEPLugin;
+        const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
 
         const tr = document.createElement('tr');
         tr.setAttribute('id', `manage-${plugins[i]}`);
@@ -65,7 +56,7 @@ async function managePlugins() {
         //version
         const version = document.createElement('td');
         version.setAttribute('data-plugin', plugins[i]);
-        version.innerText = act.version;
+        version.innerText = act.version as string;
         tr.append(version);
 
         //state
@@ -97,9 +88,9 @@ async function managePlugins() {
 
         if (act.name === 'plugin-manager') {
           disable.disabled = true;
-          disable.addEventListener('click', () => { });
+          disable.addEventListener('click', () => {});
           remove.disabled = true;
-          remove.addEventListener('click', () => { });
+          remove.addEventListener('click', () => {});
         }
 
         tbody.appendChild(tr);
@@ -115,7 +106,7 @@ async function managePlugins() {
       let plugins = Object.keys(res);
 
       for (let i = 0; i < plugins.length; i++) {
-        const act: LKEPLugin = res[plugins[i]] as LKEPLugin;
+        const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
 
         const tr = document.createElement('tr');
 
@@ -134,7 +125,7 @@ async function managePlugins() {
         //version
         const version = document.createElement('td');
         version.setAttribute('data-plugin', plugins[i]);
-        version.innerText = act.version;
+        version.innerText = act.version as string;
         tr.append(version);
 
         //state
@@ -185,31 +176,31 @@ async function pluginStatus() {
       const table = document.querySelector('#statusTable tbody')! as HTMLTableElement;
       const tbody = document.createElement('tbody');
 
-      const res = (await request.json()) as Record<string, LKEPLugin>;
+      const res = (await request.json()) as Record<string, InstalledPlugin>;
       const plugins = Object.keys(res);
 
       for (let i = 0; i < plugins.length; i++) {
-        const act: LKEPLugin = res[plugins[i]] as LKEPLugin;
+        const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
 
         const tr = document.createElement('tr');
 
         //name
         const name = document.createElement('td');
-        name.setAttribute('data-plugin', act.basePath);
+        name.setAttribute('data-plugin', act.basePath as string);
         name.innerText = act.name;
         tr.append(name);
 
         //version
         const version = document.createElement('td');
-        version.setAttribute('data-plugin', act.basePath);
-        version.innerText = act.version;
+        version.setAttribute('data-plugin', act.basePath as string);
+        version.innerText = act.version as string;
         tr.append(version);
 
         //instance
         const instance = document.createElement('td');
-        instance.setAttribute('data-plugin', act.basePath);
+        instance.setAttribute('data-plugin', act.basePath as string);
         if (act.basePath === undefined) {
-          instance.innerText = act.basePath;
+          instance.innerText = "undefined";
         } else {
           instance.innerHTML = `<a href="../${act.basePath}" target="_blank">${act.basePath}</a>`;
         }
@@ -220,12 +211,12 @@ async function pluginStatus() {
         const state = document.createElement('td');
         const span = document.createElement('span');
         span.innerText = act.state.toUpperCase();
-        span.setAttribute('data-plugin', act.basePath);
+        span.setAttribute('data-plugin', act.basePath as string);
         if (act.state === 'running') {
           span.classList.add('tag-active');
         } else {
           span.classList.add('tag-disabled');
-          span.setAttribute('message', act.error);
+          span.setAttribute('message', act.error as string);
           span.classList.add('tooltip');
         }
         state.append(span);
@@ -235,7 +226,7 @@ async function pluginStatus() {
         const logs = document.createElement('td');
         const open = document.createElement('button');
         open.classList.add('button');
-        open.setAttribute('data-plugin', act.basePath);
+        open.setAttribute('data-plugin', act.basePath as string);
         open.innerText = 'Open';
         if (act.state !== 'error-manifest') {
           open.addEventListener('click', () => window.open(`api/logs/${act.basePath}`, '_blank'));
@@ -306,7 +297,7 @@ async function backup() {
 async function removePlugin(plugin: string) {
   startWaiting();
   try {
-    const request = await fetch(`api/plugin/${plugin}`, { method: 'DELETE' });
+    const request = await fetch(`api/plugin/${plugin}`, {method: 'DELETE'});
     if (request.status === 204) {
       const elem = document.getElementById(`manage-${plugin}`) as HTMLTableRowElement;
       elem.parentNode?.removeChild(elem);
@@ -323,7 +314,7 @@ async function removePlugin(plugin: string) {
 async function restorePlugin(plugin: string) {
   startWaiting();
   try {
-    const request = await fetch(`api/plugin/${plugin}/restore`, { method: 'PATCH' });
+    const request = await fetch(`api/plugin/${plugin}/restore`, {method: 'PATCH'});
     if (request.status !== 204) {
       const error: Error = (await request.json()) as Error;
       showErrorPopup(error.message);
@@ -341,7 +332,7 @@ async function changeState(plugin: string) {
   const button = document.querySelector(`button[data-plugin="${plugin}"]`) as HTMLButtonElement;
   try {
     if (tag.getAttribute('class') === 'tag-active') {
-      let request = await fetch(`api/plugin/${plugin}/disable`, { method: 'PATCH' });
+      let request = await fetch(`api/plugin/${plugin}/disable`, {method: 'PATCH'});
       if (request.status === 204) {
         tag.innerHTML = 'DISABLED';
         tag.setAttribute('class', 'tag-disabled');
@@ -351,7 +342,7 @@ async function changeState(plugin: string) {
         showErrorPopup(error.message);
       }
     } else {
-      let request = await fetch(`api/plugin/${plugin}/enable`, { method: 'PATCH' });
+      let request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
       if (request.status === 204) {
         tag.innerHTML = 'ENABLED';
         tag.setAttribute('class', 'tag-active');
@@ -370,7 +361,7 @@ async function changeState(plugin: string) {
 
 async function restartPLugins() {
   startWaiting();
-  const request = await fetch('../../api/admin/plugins/restart-all', { method: 'POST' });
+  const request = await fetch('../../api/admin/plugins/restart-all', {method: 'POST'});
   if (request.status === 204) {
     await pluginStatus();
   } else {
@@ -384,11 +375,11 @@ async function addPlugin() {
     const request = await fetch(`api/plugins?filter=available`);
     const container = document.querySelector('#radioContainer')! as HTMLFormElement;
 
-    const res = (await request.json()) as Record<string, LKEPLugin>;
+    const res = (await request.json()) as Record<string, InstalledPlugin>;
     const plugins = Object.keys(res);
 
     for (let i = 0; i < plugins.length; i++) {
-      const act: LKEPLugin = res[plugins[i]] as LKEPLugin;
+      const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
       //radio
       const radio = document.createElement('input');
       radio.setAttribute('value', act.name);
@@ -418,7 +409,7 @@ async function addPlugin() {
     // label
     const label = document.createElement('label');
     label.setAttribute('for', 'radio-upload');
-    label.setAttribute('id', 'custom-plugin-manifest')
+    label.setAttribute('id', 'custom-plugin-manifest');
     label.innerHTML = 'upload a plugin: n/a';
     // file
     const file = document.createElement('input');
@@ -426,7 +417,6 @@ async function addPlugin() {
     file.setAttribute('id', 'importFile');
     file.setAttribute('name', 'importFile');
     file.onchange = newPluginParsing;
-
 
     container.appendChild(radio);
     container.appendChild(label);
@@ -446,7 +436,7 @@ async function installPlugin() {
       if (radio[i].value !== 'upload') {
         const error = document.getElementById('fileError') as HTMLDivElement;
         error.innerText = '';
-        const request = await fetch(`api/install-available/${radio[i].value}`, { method: 'POST' });
+        const request = await fetch(`api/install-available/${radio[i].value}`, {method: 'POST'});
         if (request.status === 200) {
           await managePlugins();
           stopWaiting();
@@ -507,13 +497,14 @@ async function newPluginParsing() {
 
       if (response.status >= 200 && response.status < 300) {
         const manifest = (await response.json()) as Manifest;
-        document.getElementById('custom-plugin-manifest')!.innerText = `upload a plugin: ${manifest.name} v${manifest.version}`;
+        document.getElementById(
+          'custom-plugin-manifest'
+        )!.innerText = `upload a plugin: ${manifest.name} v${manifest.version}`;
       } else {
         showErrorPopup(await response.text());
         inputFile.value = '';
       }
     } else {
-
       document.getElementById('custom-plugin-manifest')!.innerText = 'upload a plugin: n/a';
     }
   } else {

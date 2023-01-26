@@ -367,7 +367,18 @@ async function changeState(plugin: string) {
   }
 }
 
-async function restartPLugins() {
+async function purgePlugins() {
+    startWaiting();
+    const request = await fetch('api/purge?filter=backup', {method: 'DELETE'});
+    if (request.status >= 200 && request.status < 300) {
+      await backup();
+    } else {
+      showErrorPopup(await request.text());
+    }
+    stopWaiting();
+}
+
+async function restartPlugins() {
   startWaiting();
   const request = await fetch('../../api/admin/plugins/restart-all', {method: 'POST'});
   if (request.status === 204) {
@@ -476,11 +487,8 @@ async function readFile() {
       await managePlugins();
     } else {
       const close = document.getElementById('closePopup') as HTMLElement;
-      close.parentElement?.removeChild(close);
 
-      document.getElementById('errorPopup')?.classList.add('hider');
-
-      showErrorPopup(JSON.stringify(response));
+      showErrorPopup(await response.text());
     }
   } else {
     error.innerText = 'Select a valid file!';
@@ -522,21 +530,80 @@ async function newPluginParsing() {
   stopWaiting();
 }
 
+function updateURLParameter(url: string, param: string, paramVal: string): string {
+  let TheAnchor = null;
+  let newAdditionalURL = '';
+  let tempArray = url.split('?');
+  let baseURL = tempArray[0];
+  let additionalURL = tempArray[1];
+  let temp = '';
+
+  if (additionalURL) {
+    let tmpAnchor = additionalURL.split('#');
+    let TheParams = tmpAnchor[0];
+    TheAnchor = tmpAnchor[1];
+    if (TheAnchor) {
+      additionalURL = TheParams;
+    }
+
+    tempArray = additionalURL.split('&');
+
+    for (let i = 0; i < tempArray.length; i++) {
+      if (tempArray[i].split('=')[0] !== param) {
+        newAdditionalURL += temp + tempArray[i];
+        temp = '&';
+      }
+    }
+  } else {
+    let tmpAnchor = baseURL.split('#');
+    let TheParams = tmpAnchor[0];
+    TheAnchor = tmpAnchor[1];
+
+    if (TheParams) {
+      baseURL = TheParams;
+    }
+  }
+
+  if (TheAnchor) {
+    paramVal += '#' + TheAnchor;
+  }
+
+  const rows_txt = temp + '' + param + '=' + paramVal;
+  return baseURL + '?' + newAdditionalURL + rows_txt;
+}
+
 function init() {
+  const urlParams = new URLSearchParams(location.search);
+
   fetch(`api/authorize`)
     .then(async (response) => {
       if (response.status === 204) {
         document.getElementById('addButton')!.onclick = toggleAddMenu;
         document.getElementById('closePopup')!.onclick = closeErrorPopup;
         document.getElementById('installButton')!.onclick = installPlugin;
-        document.getElementById('restartButton')!.onclick = restartPLugins;
+        document.getElementById('restartButton')!.onclick = restartPlugins;
+        document.getElementById('restartButtonBis')!.onclick = restartPlugins;
+        document.getElementById('purgeButton')!.onclick = purgePlugins;
 
-        document.getElementById('tab-1')!.onclick = pluginStatus;
-        document.getElementById('tab-2')!.onclick = managePlugins;
-        document.getElementById('tab-3')!.onclick = backup;
+        const tabHistory = (param: string) =>
+          window.history.replaceState(
+            '',
+            '',
+            updateURLParameter(window.location.href, 'tab', param)
+          );
 
-        await pluginStatus();
+        document.getElementById('pluginStatus')!.addEventListener('click', () => tabHistory('pluginStatus'));
+        document.getElementById('pluginStatus')!.addEventListener('click', () => void pluginStatus());
+        document.getElementById('managePlugins')!.addEventListener('click', () => tabHistory('managePlugins'));
+        document.getElementById('managePlugins')!.addEventListener('click', () => void managePlugins());
+        document.getElementById('backup')!.addEventListener('click', () => tabHistory('backup'));
+        document.getElementById('backup')!.addEventListener('click', () => void backup());
+
         await addPlugin();
+        (
+          document.getElementById(urlParams.get('tab') || 'pluginStatus') ||
+          document.getElementById('pluginStatus')!
+        ).click();
       } else {
         const close = document.getElementById('closePopup') as HTMLElement;
         close.parentElement?.removeChild(close);

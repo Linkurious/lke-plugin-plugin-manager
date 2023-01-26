@@ -104,7 +104,7 @@ body {
 }
 
 #hiding-menu {
-  width: 60%;
+  width: 100%;
   margin: auto;
   padding: 0px 20px 0px 20px;
   background-color: rgb(240, 240, 240);
@@ -129,9 +129,7 @@ table {
   border-collapse: collapse;
   border-radius: 1em;
   overflow: hidden;
-  margin-left: 20%;
-  margin-right: 20%;
-  min-width: 60%;
+  min-width: 100%;
   box-shadow: 3px 6px rgb(230, 230, 230);
 }
 
@@ -185,6 +183,11 @@ input {
   margin-bottom: 12px;
 }
 
+.table-container {
+  margin-left: 20%;
+  margin-right: 20%;
+}
+
 .button {
   background-color: #0062fa;
   border-radius: 8px;
@@ -230,20 +233,35 @@ input {
 }
 
 .addButton {
-  background-image: url(assets/add-icon.png);
+  background-image: url(assets/add-icon.svg);
   background-size: contain;
-  background-size: 10px;
+  background-size: 1em;
   background-position: 18px;
   background-repeat: no-repeat;
-  padding-left: 30px;
+  padding-left: 40px;
   margin-bottom: 20px;
-  margin-left: 20%;
   animation: all 0.5deg;
 }
 
 .restartButton {
+  background-image: url(assets/refresh-icon.svg);
+  background-size: contain;
+  background-size: 1em;
+  background-position: 18px;
+  background-repeat: no-repeat;
+  padding-left: 40px;
   margin-bottom: 20px;
-  margin-left: 20%;
+  animation: all 0.5deg;
+}
+
+.purgeButton {
+  background-image: url(assets/trash-icon.svg);
+  background-size: contain;
+  background-size: 1em;
+  background-position: 18px;
+  background-repeat: no-repeat;
+  padding-left: 40px;
+  margin-bottom: 20px;
   animation: all 0.5deg;
 }
 

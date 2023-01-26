@@ -42,47 +42,47 @@ async function managePlugins() {
         const tr = document.createElement('tr');
         tr.setAttribute('id', `manage-${plugins[i]}`);
 
-        //package
+        // package
         const pack = document.createElement('td');
         pack.setAttribute('data-plugin', plugins[i]);
         pack.innerText = plugins[i];
         tr.append(pack);
 
-        //name
+        // name
         const name = document.createElement('td');
         name.setAttribute('data-plugin', plugins[i]);
         name.innerText = act.name;
         tr.append(name);
 
-        //version
+        // version
         const version = document.createElement('td');
         version.setAttribute('data-plugin', plugins[i]);
         version.innerText = act.version as string;
         tr.append(version);
 
-        //state
+        // state
         const state = document.createElement('td');
         const enabled = document.createElement('span');
         enabled.classList.add('tag-active');
-        enabled.setAttribute('data-plugin', plugins[i]);
+        enabled.setAttribute('id', `state-${plugins[i]}`);
         enabled.innerText = 'ENABLED';
         state.append(enabled);
         tr.append(state);
 
-        //manage
+        // manage
         const manage = document.createElement('td');
-        //--disable button
+        // --disable button
         const disable = document.createElement('button');
         disable.setAttribute('class', 'button hasNext');
-        disable.setAttribute('data-plugin', plugins[i]);
-        disable.addEventListener('click', () => void changeState(disable.dataset.plugin as string));
+        disable.setAttribute('id', `stateButton-${plugins[i]}`);
+        disable.addEventListener('click', () => void changeState(plugins[i]));
         disable.innerText = 'Disable';
         manage.append(disable);
-        //--remove button
+        // --remove button
         const remove = document.createElement('button');
         remove.setAttribute('class', 'button');
-        remove.setAttribute('data-plugin', plugins[i]);
-        remove.addEventListener('click', () => void removePlugin(remove.dataset.plugin as string));
+        remove.setAttribute('id', `removeButton-${plugins[i]}`);
+        remove.addEventListener('click', () => void removePlugin(plugins[i]));
         remove.innerText = 'Remove';
         manage.append(remove);
         tr.append(manage);
@@ -111,49 +111,50 @@ async function managePlugins() {
 
         const tr = document.createElement('tr');
 
-        //package
+        // package
         const pack = document.createElement('td');
         pack.setAttribute('data-plugin', plugins[i]);
         pack.innerText = plugins[i];
         tr.append(pack);
 
-        //name
+        // name
         const name = document.createElement('td');
         name.setAttribute('data-plugin', plugins[i]);
         name.innerText = act.name;
         tr.append(name);
 
-        //version
+        // version
         const version = document.createElement('td');
         version.setAttribute('data-plugin', plugins[i]);
         version.innerText = act.version as string;
         tr.append(version);
 
-        //state
+        // state
         const state = document.createElement('td');
         const disabled = document.createElement('span');
         disabled.classList.add('tag-disabled');
-        disabled.setAttribute('data-plugin', plugins[i]);
+        disabled.setAttribute('id', `state-${plugins[i]}`);
         disabled.innerText = 'DISABLED';
         state.append(disabled);
         tr.append(state);
 
-        //manage
+        // manage
         const manage = document.createElement('td');
-        //--enable button
+        // --enable button
         const enable = document.createElement('button');
         enable.classList.add('button', 'hasNext');
-        enable.setAttribute('data-plugin', plugins[i]);
-        enable.addEventListener('click', () => void changeState(enable.dataset.plugin as string));
+        enable.setAttribute('id', `stateButton-${plugins[i]}`);
+        enable.addEventListener('click', () => void changeState(plugins[i]));
         enable.innerText = 'Enable';
         manage.append(enable);
-        //--remove button
+        // --remove button
         const remove = document.createElement('button');
         remove.classList.add('button');
-        remove.setAttribute('data-plugin', plugins[i]);
+        remove.setAttribute('id', `removeButton-${plugins[i]}`);
         remove.addEventListener('click', () => void removePlugin(plugins[i]));
         remove.innerText = 'Remove';
         manage.append(remove);
+        remove.disabled = true;
         tr.append(manage);
 
         tbody.appendChild(tr);
@@ -169,7 +170,7 @@ async function managePlugins() {
   }
 }
 
-//Status Tab
+// Status Tab
 async function pluginStatus() {
   try {
     const request = await fetch(`../../api/admin/plugins`);
@@ -185,19 +186,19 @@ async function pluginStatus() {
 
         const tr = document.createElement('tr');
 
-        //name
+        // name
         const name = document.createElement('td');
         name.setAttribute('data-plugin', act.basePath as string);
         name.innerText = act.name;
         tr.append(name);
 
-        //version
+        // version
         const version = document.createElement('td');
         version.setAttribute('data-plugin', act.basePath as string);
         version.innerText = act.version as string;
         tr.append(version);
 
-        //instance
+        // instance
         const instance = document.createElement('td');
         instance.setAttribute('data-plugin', act.basePath as string);
         if (act.basePath === undefined) {
@@ -208,7 +209,7 @@ async function pluginStatus() {
 
         tr.append(instance);
 
-        //state
+        // state
         const state = document.createElement('td');
         const span = document.createElement('span');
         span.innerText = act.state.toUpperCase();
@@ -223,7 +224,7 @@ async function pluginStatus() {
         state.append(span);
         tr.append(state);
 
-        //logs
+        // logs
         const logs = document.createElement('td');
         const open = document.createElement('button');
         open.classList.add('button');
@@ -252,7 +253,7 @@ async function pluginStatus() {
   }
 }
 
-//Backup tab
+// Backup tab
 async function backup() {
   try {
     const request = await fetch(`api/plugins?filter=backup`);
@@ -272,13 +273,13 @@ async function backup() {
       const tr = document.createElement('tr');
       tr.setAttribute('id', `backup-${plugins[i]}`);
 
-      //package
+      // package
       const pack = document.createElement('td');
       pack.setAttribute('data-plugin', plugins[i]);
       pack.innerText = plugins[i];
       tr.append(pack);
 
-      //Manage
+      // Manage
       const manage = document.createElement('td');
       const restore = document.createElement('button');
       restore.setAttribute('class', 'button');
@@ -306,7 +307,7 @@ async function removePlugin(plugin: string) {
       elem.parentNode?.removeChild(elem);
       stopWaiting();
     } else {
-      //showErrorPopup(request.json().message)
+      // showErrorPopup(request.json().message)
     }
   } catch (error) {
     stopWaiting();
@@ -331,15 +332,18 @@ async function restorePlugin(plugin: string) {
 
 async function changeState(plugin: string) {
   startWaiting();
-  const tag = document.querySelector(`span[data-plugin="${plugin}"]`) as HTMLSpanElement;
-  const button = document.querySelector(`button[data-plugin="${plugin}"]`) as HTMLButtonElement;
+
+  const state = document.getElementById(`state-${plugin}`) as HTMLSpanElement;
+  const stateButton = document.getElementById(`stateButton-${plugin}`) as HTMLButtonElement;
+  const removeButton = document.getElementById(`removeButton-${plugin}`) as HTMLButtonElement;
   try {
-    if (tag.getAttribute('class') === 'tag-active') {
+    if (state.getAttribute('class') === 'tag-active') {
       let request = await fetch(`api/plugin/${plugin}/disable`, {method: 'PATCH'});
       if (request.status === 204) {
-        tag.innerHTML = 'DISABLED';
-        tag.setAttribute('class', 'tag-disabled');
-        button.innerHTML = 'Enable';
+        state.innerHTML = 'DISABLED';
+        state.setAttribute('class', 'tag-disabled');
+        stateButton.innerHTML = 'Enable';
+        removeButton.disabled = true;
       } else {
         const error: Error = (await request.json()) as Error;
         showErrorPopup(error.message);
@@ -347,9 +351,10 @@ async function changeState(plugin: string) {
     } else {
       let request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
       if (request.status === 204) {
-        tag.innerHTML = 'ENABLED';
-        tag.setAttribute('class', 'tag-active');
-        button.innerHTML = 'Disable';
+        state.innerHTML = 'ENABLED';
+        state.setAttribute('class', 'tag-active');
+        stateButton.innerHTML = 'Disable';
+        removeButton.disabled = false;
       } else {
         const error: Error = (await request.json()) as Error;
         showErrorPopup(error.message);
@@ -383,7 +388,7 @@ async function addPlugin() {
 
     for (let i = 0; i < plugins.length; i++) {
       const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
-      //radio
+      // radio
       const radio = document.createElement('input');
       radio.setAttribute('value', act.name);
       radio.setAttribute('type', 'radio');
@@ -392,7 +397,7 @@ async function addPlugin() {
       if (act.name === 'plugin-manager') {
         radio.disabled = true;
       }
-      //label
+      // label
       const label = document.createElement('label');
       label.setAttribute('for', `radio-${act.name as string}`);
       label.innerText = `official plugin: ${act.name as string} v${act.version as string}`;
@@ -517,7 +522,7 @@ async function newPluginParsing() {
   stopWaiting();
 }
 
-window.addEventListener('load', function () {
+function init() {
   fetch(`api/authorize`)
     .then(async (response) => {
       if (response.status === 204) {
@@ -549,4 +554,6 @@ window.addEventListener('load', function () {
 
       showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
     });
-});
+}
+
+window.addEventListener('load', init);

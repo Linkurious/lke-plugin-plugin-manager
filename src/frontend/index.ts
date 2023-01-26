@@ -1,5 +1,6 @@
+import {InstalledPlugin} from '@linkurious/rest-client';
+
 import {Manifest} from '../backend/PluginParser';
-import { InstalledPlugin } from '@linkurious/rest-client';
 
 function startWaiting() {
   document.getElementById('spinner')?.classList.add('show');
@@ -200,7 +201,7 @@ async function pluginStatus() {
         const instance = document.createElement('td');
         instance.setAttribute('data-plugin', act.basePath as string);
         if (act.basePath === undefined) {
-          instance.innerText = "undefined";
+          instance.innerText = 'undefined';
         } else {
           instance.innerHTML = `<a href="../${act.basePath}" target="_blank">${act.basePath}</a>`;
         }
@@ -229,7 +230,9 @@ async function pluginStatus() {
         open.setAttribute('data-plugin', act.basePath as string);
         open.innerText = 'Open';
         if (act.state !== 'error-manifest') {
-          open.addEventListener('click', () => window.open(`api/logs/${act.basePath}`, '_blank'));
+          open.addEventListener('click', () =>
+            window.open(`api/logs/${act.basePath as string}`, '_blank')
+          );
         } else {
           open.disabled = true;
         }
@@ -391,8 +394,8 @@ async function addPlugin() {
       }
       //label
       const label = document.createElement('label');
-      label.setAttribute('for', `radio-${act.name}`);
-      label.innerText = `official plugin: ${act.name} v${act.version}`;
+      label.setAttribute('for', `radio-${act.name as string}`);
+      label.innerText = `official plugin: ${act.name as string} v${act.version as string}`;
 
       container.appendChild(radio);
       container.appendChild(label);

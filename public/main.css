@@ -203,6 +203,7 @@ input {
   min-width: 6em;
   outline: none;
   padding: 10px 16px;
+  box-shadow: 2px 4px 3px 1px rgb(230 230 230);
   position: relative;
   text-align: center;
   text-decoration: none;

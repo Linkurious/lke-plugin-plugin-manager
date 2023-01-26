@@ -19,9 +19,10 @@
         <label for="tab-1" class="tab-label disable-select">Status</label>
         <div class="tab-content">
           <div class="tab-description">
-            List of plugins currently deployed in the system.
-            If you installed a new plugin but you do not see it, you need to use the <code>RESTART</code> button to re-deploy all the plugins. Be carefull as this operation will temporarly make inavailable current deployed plugins.
-Plugins with a <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs. </div>
+            List of plugins currently deployed on the system.<br>
+            If you installed a new plugin but you do not see it, you need to use the <code>RESTART</code> button to re-deploy all the plugins.<br>
+            Be carefull as this operation will temporarly make inavailable current deployed plugins.<br>
+            Plugins with a <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs. </div>
           <div class="table-container">
             <button class="button restartButton" id="restartButton">RESTART</button>
             <table id="statusTable">
@@ -52,8 +53,10 @@ Plugins with a <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot
         <label for="tab-2" class="tab-label disable-select">Manage Plugins</label>
         <div class="tab-content">
           <div class="tab-description">
-            List of plugins available on the system. Only the one with ENABLED state will be deployed at the next restart of the plugins. You cannot make any actions on the plugin-manager it self. You can ADD new plugins either from the list of official plugins embededd in your Linkurious Enterprise installation or manually upload a new one.
-Remember: after installing a new plugin, you need to use the RESTART button to deploy them. </div>
+            List of plugins available on the system.<br>
+            Only the one with <code>ENABLED</code> state will be deployed at the next restart of the plugins.<br>
+            You cannot make any actions on the plugin-manager it self. You can <code>ADD</code> new plugins either from the list of official plugins embededd in your Linkurious Enterprise installation or manually upload a new one.<br>
+            Remember: after installing a new plugin, you need to use the <code>RESTART</code> button to deploy them. </div>
           <div class="table-container">
             <button class="button addButton" id="addButton">ADD</button>
             <div id="hiding-menu">
@@ -94,7 +97,8 @@ Remember: after installing a new plugin, you need to use the RESTART button to d
         <label for="tab-3" class="tab-label disable-select">Backups</label>
         <div class="tab-content">
           <div class="tab-description">
-            List of plugins that have either been manually deleted or automatically backedup before being replaced by a new file with the same name. It is helpful to restore the previous file in case of problems after a new installation.</div>
+            List of plugins that have either been manually deleted or automatically backed up before being replaced by a new file with the same name.<br>
+            It is helpful to restore the previous file in case of problems after a new installation.</div>
           <table id="backupTable">
             <thead>
               <tr>

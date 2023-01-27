@@ -1,7 +1,6 @@
 {
   "name": "plugin-manager",
   "version": "1.0.0",
-  "linkuriousVersion": "3.1.0",
   "pluginApiVersion": "1.0.0",
   "publicRoute": "public",
   "singlePageAppIndex": "index.html",

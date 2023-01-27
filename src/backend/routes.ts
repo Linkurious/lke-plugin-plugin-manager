@@ -75,7 +75,7 @@ export = async function configureRoutes(
     };
   }
 
-  const CUSTOM_RESPONSE = new Object();
+  const CUSTOM_RESPONSE = Symbol('customResponse');
 
   function handleRequest(
     fun: (req: Request, res: Response, next: NextFunction) => unknown | Promise<unknown>
@@ -142,7 +142,7 @@ export = async function configureRoutes(
         throw new UploadSizePluginError();
       }
 
-      return await manager.getPluginManifest(req.files.plugin.tempFilePath);
+      return await manager.getPluginManifest(req.files.plugin.tempFilePath, false);
     })
   );
 
@@ -217,7 +217,7 @@ export = async function configureRoutes(
   options.router.get(
     '/plugin/:fileName',
     handleRequest(async (req) => {
-      return await manager.getPluginManifest(req.params.fileName);
+      return await manager.getPluginManifest(req.params.fileName, true);
     })
   );
 

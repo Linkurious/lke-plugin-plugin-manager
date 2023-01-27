@@ -247,8 +247,8 @@ export class PluginManager {
    *
    * @param pluginSource: the plugin source
    */
-  public async getPluginManifest(pluginSource: PluginSource): Promise<Manifest> {
-    if (pluginSource === 'string') {
+  public async getPluginManifest(pluginSource: PluginSource, validate: boolean): Promise<Manifest> {
+    if (validate && typeof pluginSource === 'string') {
       this.validateFileName(pluginSource);
       pluginSource = path.join(this.getPath(PluginDeploymentStatus.ENABLED), pluginSource);
     }

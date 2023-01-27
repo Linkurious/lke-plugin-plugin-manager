@@ -53,7 +53,7 @@ export class PluginParser {
     return this.status === 'parsed'
       ? `${!this._manifest!.name.startsWith('lke-plugin-') ? 'lke-plugin-' : ''}${
           this._manifest!.name
-        }-${this._manifest!.version}.lke`
+        }-v${this._manifest!.version}.lke`
       : '';
   }
 

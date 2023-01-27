@@ -16,7 +16,6 @@ body {
 }
 
 .wrapper {
-  /* display: ; */
   width: 100%;
 }
 
@@ -266,16 +265,16 @@ input {
 }
 
 .disable-select {
-  user-select: none;
   /* supported by Chrome and Opera */
-  -webkit-user-select: none;
+  user-select: none;
   /* Safari */
-  -khtml-user-select: none;
+  -webkit-user-select: none;
   /* Konqueror HTML */
-  -moz-user-select: none;
+  -khtml-user-select: none;
   /* Firefox */
-  -ms-user-select: none;
+  -moz-user-select: none;
   /* Internet Explorer/Edge */
+  -ms-user-select: none;
 }
 
 .tag-active {
@@ -346,7 +345,6 @@ input {
 #errorPopup.hider {
   background: rgb(180, 180, 180);
   transition: none;
-
 }
 
 .popup {

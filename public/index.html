@@ -23,7 +23,8 @@
             If you installed a new plugin but you do not see it, you need to use the <code>RESTART</code> button to
             re-deploy all the plugins.<br>
             Be carefull as this operation will temporarly make unavailable current deployed plugins.<br>
-            Plugins with an <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs. </div>
+            Plugins with an <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs.
+          </div>
           <div class="table-container">
             <button class="button restartButton" id="restartButton">RESTART</button>
             <table id="statusTable">
@@ -66,9 +67,9 @@
             <button class="button restartButton" id="restartButtonBis">RESTART</button>
             <div id="hiding-menu">
               <h2>Install a new plugin</h2>
-              <form id="radioContainer">
-              </form>
-              <div><button class="button" id="installButton">Install</button>
+              <div id="radioContainer"></div>
+              <div>
+                <button class="button" id="installButton">Install</button>
                 <div id="fileError"></div>
               </div>
               <p style="font-size: 12px;">(The process might take few minutes depending on the size of the
@@ -105,19 +106,23 @@
             List of plugins that have either been manually deleted or automatically deleted before being replaced by a
             new file with the same name.<br>
             It is helpful to restore the previous file in case of problems after a new installation.<br>
-            Warning: pressing the <code>EMPTY BIN</code> button will permanently empty the plugins recycle bin.</div>
+            Warning: pressing the <code>EMPTY BIN</code> button will permanently empty the plugins recycle bin.
+          </div>
           <div class="table-container">
             <button class="button purgeButton" id="purgeButton">EMPTY BIN</button>
             <table id="recyclebinTable">
               <thead>
                 <tr>
                   <th> Package</th>
-
+                  <th> Plugin name</th>
+                  <th> Version</th>
                   <th> Manage</th>
                 </tr>
               </thead>
               <tbody>
                 <tr class="enabled">
+                  <td></td>
+                  <td></td>
                   <td></td>
                   <td></td>
                 </tr>

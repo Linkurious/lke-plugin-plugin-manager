@@ -7,15 +7,23 @@ import {updateURLParameter} from './utils';
 function startWaiting() {
   document.getElementById('spinner')?.classList.add('show');
 }
+
 function stopWaiting() {
   document.getElementById('spinner')?.classList.remove('show');
 }
 
-function showErrorPopup(message: string) {
-  const errorMessage = document.getElementById('errorMessage')! as HTMLParagraphElement;
-  errorMessage.innerText = message;
+function showErrorPopup(message: string, blockApp = false) {
+  const errorPopup = document.getElementById('errorPopup') as HTMLDivElement;
+  const errorMessage = document.getElementById('errorMessage') as HTMLParagraphElement;
+  errorMessage.textContent = message;
 
-  document.getElementById('errorPopup')?.classList.add('show');
+  if (blockApp) {
+    const close = document.getElementById('closePopup') as HTMLElement;
+    close.remove();
+    errorPopup.classList.add('hider');
+  }
+
+  errorPopup.classList.add('show');
 }
 
 function closeErrorPopup() {
@@ -23,8 +31,65 @@ function closeErrorPopup() {
 }
 
 function toggleAddMenu() {
-  const menu = document.getElementById('hiding-menu');
-  menu?.classList.contains('show') ? menu?.classList.remove('show') : menu?.classList.add('show');
+  const menu = document.getElementById('hiding-menu') as HTMLDivElement;
+  menu.classList.toggle('show');
+}
+
+function createManagePluginsRow(
+  pluginName: string,
+  pluginManifest: Manifest,
+  status: 'enabled' | 'disabled'
+): HTMLTableRowElement {
+  const tr = document.createElement('tr');
+  tr.setAttribute('data-plugin', pluginName);
+
+  // package
+  const pack = document.createElement('td');
+  pack.textContent = pluginName;
+  tr.append(pack);
+
+  // name
+  const name = document.createElement('td');
+  name.textContent = pluginManifest.name;
+  tr.append(name);
+
+  // version
+  const version = document.createElement('td');
+  version.textContent = pluginManifest.version ?? null;
+  tr.append(version);
+
+  // state
+  const state = document.createElement('td');
+  const statusTag = document.createElement('span');
+  statusTag.classList.add('state', status === 'enabled' ? 'tag-active' : 'tag-disabled');
+  statusTag.textContent = status === 'enabled' ? 'ENABLED' : 'DISABLED';
+  state.append(statusTag);
+  tr.append(state);
+
+  // manage
+  const manage = document.createElement('td');
+  // --action button (enable/disable)
+  const actionButton = document.createElement('button');
+  actionButton.classList.add('button', 'stateButton', 'hasNext');
+  actionButton.addEventListener('click', () => void changeState(tr));
+  actionButton.textContent = status === 'enabled' ? 'Disable' : 'Enable';
+  manage.append(actionButton);
+  // --remove button
+  const remove = document.createElement('button');
+  remove.classList.add('button', 'removeButton');
+  remove.addEventListener('click', () => void removePlugin(tr));
+  remove.textContent = 'Remove';
+  // Disabled plugins cannot be removed, they need to be enabled first
+  remove.disabled = status === 'disabled';
+  manage.append(remove);
+  tr.append(manage);
+
+  if (pluginManifest.name === 'plugin-manager') {
+    actionButton.disabled = true;
+    remove.disabled = true;
+  }
+
+  return tr;
 }
 
 // Manage Plugins Tab
@@ -33,136 +98,26 @@ async function managePlugins() {
     const table = document.querySelector('#manageTable tbody')! as HTMLTableElement;
     const tbody = document.createElement('tbody');
 
+    // Fill the tale with the list of enabled plugins
     const requestEnabled = await fetch(`api/plugins?filter=enabled`);
     if (requestEnabled.status === 200) {
-      let res = (await requestEnabled.json()) as Record<string, Manifest>;
-      let plugins = Object.keys(res);
-
-      for (let i = 0; i < plugins.length; i++) {
-        const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
-
-        const tr = document.createElement('tr');
-        tr.setAttribute('id', `manage-${plugins[i]}`);
-
-        // package
-        const pack = document.createElement('td');
-        pack.setAttribute('data-plugin', plugins[i]);
-        pack.innerText = plugins[i];
-        tr.append(pack);
-
-        // name
-        const name = document.createElement('td');
-        name.setAttribute('data-plugin', plugins[i]);
-        name.innerText = act.name;
-        tr.append(name);
-
-        // version
-        const version = document.createElement('td');
-        version.setAttribute('data-plugin', plugins[i]);
-        version.innerText = act.version as string;
-        tr.append(version);
-
-        // state
-        const state = document.createElement('td');
-        const enabled = document.createElement('span');
-        enabled.classList.add('tag-active');
-        enabled.setAttribute('id', `state-${plugins[i]}`);
-        enabled.innerText = 'ENABLED';
-        state.append(enabled);
-        tr.append(state);
-
-        // manage
-        const manage = document.createElement('td');
-        // --disable button
-        const disable = document.createElement('button');
-        disable.setAttribute('class', 'button hasNext');
-        disable.setAttribute('id', `stateButton-${plugins[i]}`);
-        disable.addEventListener('click', () => void changeState(plugins[i]));
-        disable.innerText = 'Disable';
-        manage.append(disable);
-        // --remove button
-        const remove = document.createElement('button');
-        remove.setAttribute('class', 'button');
-        remove.setAttribute('id', `removeButton-${plugins[i]}`);
-        remove.addEventListener('click', () => void removePlugin(plugins[i]));
-        remove.innerText = 'Remove';
-        manage.append(remove);
-        tr.append(manage);
-
-        if (act.name === 'plugin-manager') {
-          disable.disabled = true;
-          disable.addEventListener('click', () => {});
-          remove.disabled = true;
-          remove.addEventListener('click', () => {});
-        }
-
-        tbody.appendChild(tr);
+      const plugins = (await requestEnabled.json()) as Record<string, Manifest>;
+      for (const [pluginName, pluginManifest] of Object.entries(plugins)) {
+        tbody.appendChild(createManagePluginsRow(pluginName, pluginManifest, 'enabled'));
       }
     } else {
-      const error: Error = (await requestEnabled.json()) as Error;
-      showErrorPopup(error.message);
+      showErrorPopup(await requestEnabled.text());
     }
 
+    // Fill the tale with the list of disabled plugins
     const requestDisabled = await fetch(`api/plugins?filter=disabled`);
     if (requestDisabled.status === 200) {
-      let res = (await requestDisabled.json()) as Record<string, Manifest>;
-      let plugins = Object.keys(res);
-
-      for (let i = 0; i < plugins.length; i++) {
-        const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
-        const tr = document.createElement('tr');
-
-        // package
-        const pack = document.createElement('td');
-        pack.setAttribute('data-plugin', plugins[i]);
-        pack.innerText = plugins[i];
-        tr.append(pack);
-
-        // name
-        const name = document.createElement('td');
-        name.setAttribute('data-plugin', plugins[i]);
-        name.innerText = act.name;
-        tr.append(name);
-
-        // version
-        const version = document.createElement('td');
-        version.setAttribute('data-plugin', plugins[i]);
-        version.innerText = act.version as string;
-        tr.append(version);
-
-        // state
-        const state = document.createElement('td');
-        const disabled = document.createElement('span');
-        disabled.classList.add('tag-disabled');
-        disabled.setAttribute('id', `state-${plugins[i]}`);
-        disabled.innerText = 'DISABLED';
-        state.append(disabled);
-        tr.append(state);
-
-        // manage
-        const manage = document.createElement('td');
-        // --enable button
-        const enable = document.createElement('button');
-        enable.classList.add('button', 'hasNext');
-        enable.setAttribute('id', `stateButton-${plugins[i]}`);
-        enable.addEventListener('click', () => void changeState(plugins[i]));
-        enable.innerText = 'Enable';
-        manage.append(enable);
-        // --remove button
-        const remove = document.createElement('button');
-        remove.classList.add('button');
-        remove.setAttribute('id', `removeButton-${plugins[i]}`);
-        remove.addEventListener('click', () => void removePlugin(plugins[i]));
-        remove.innerText = 'Remove';
-        manage.append(remove);
-        remove.disabled = true;
-        tr.append(manage);
-
-        tbody.appendChild(tr);
+      const plugins = (await requestDisabled.json()) as Record<string, Manifest>;
+      for (const [pluginName, pluginManifest] of Object.entries(plugins)) {
+        tbody.appendChild(createManagePluginsRow(pluginName, pluginManifest, 'disabled'));
       }
     } else {
-      const error: Error = (await requestDisabled.json()) as Error;
-      showErrorPopup(error.message);
+      showErrorPopup(await requestDisabled.text());
     }
 
     table.replaceWith(tbody);
@@ -179,47 +134,39 @@ async function pluginStatus() {
       const table = document.querySelector('#statusTable tbody')! as HTMLTableElement;
       const tbody = document.createElement('tbody');
 
-      const res = (await request.json()) as Record<string, InstalledPlugin>;
-      const plugins = Object.keys(res);
-
-      for (let i = 0; i < plugins.length; i++) {
-        const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
-
+      const plugins = (await request.json()) as Record<string, InstalledPlugin>;
+      for (const [, pluginManifest] of Object.entries(plugins)) {
         const tr = document.createElement('tr');
+        tr.setAttribute('data-plugin', pluginManifest.basePath || 'n/a');
 
         // name
         const name = document.createElement('td');
-        name.setAttribute('data-plugin', act.basePath as string);
-        name.innerText = act.name;
+        name.textContent = pluginManifest.name;
         tr.append(name);
 
         // version
         const version = document.createElement('td');
-        version.setAttribute('data-plugin', act.basePath as string);
-        version.innerText = act.version as string;
+        version.textContent = pluginManifest.version || 'n/a';
         tr.append(version);
 
         // instance
         const instance = document.createElement('td');
-        instance.setAttribute('data-plugin', act.basePath as string);
-        if (act.basePath === undefined) {
-          instance.innerText = 'undefined';
+        if (pluginManifest.basePath === undefined) {
+          instance.textContent = 'n/a';
         } else {
-          instance.innerHTML = `<a href="../${act.basePath}" target="_blank">${act.basePath}</a>`;
+          instance.innerHTML = `<a href="../${pluginManifest.basePath}" target="_blank">${pluginManifest.basePath}</a>`;
         }
-
         tr.append(instance);
 
         // state
         const state = document.createElement('td');
         const span = document.createElement('span');
-        span.innerText = act.state.toUpperCase();
-        span.setAttribute('data-plugin', act.basePath as string);
-        if (act.state === 'running') {
+        span.textContent = pluginManifest.state.toUpperCase();
+        if (pluginManifest.state === 'running') {
           span.classList.add('tag-active');
         } else {
           span.classList.add('tag-disabled');
-          span.setAttribute('message', act.error as string);
+          span.setAttribute('message', pluginManifest.error!);
           span.classList.add('tooltip');
         }
         state.append(span);
@@ -229,11 +176,10 @@ async function pluginStatus() {
         const logs = document.createElement('td');
         const open = document.createElement('button');
         open.classList.add('button');
-        open.setAttribute('data-plugin', act.basePath as string);
-        open.innerText = 'Open';
-        if (act.state !== 'error-manifest') {
+        open.textContent = 'Open';
+        if (pluginManifest.state !== 'error-manifest') {
           open.addEventListener('click', () =>
-            window.open(`api/logs/${act.basePath as string}`, '_blank')
+            window.open(`api/logs/${pluginManifest.basePath!}`, '_blank')
           );
         } else {
           open.disabled = true;
@@ -246,8 +192,7 @@ async function pluginStatus() {
 
       table.replaceWith(tbody);
     } else {
-      const error: Error = (await request.json()) as Error;
-      showErrorPopup(error.message);
+      showErrorPopup(await request.text());
     }
   } catch (error) {
     showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
@@ -258,55 +203,58 @@ async function pluginStatus() {
 async function recyclebin() {
   try {
     const request = await fetch(`api/plugins?filter=recyclebin`);
-    if (request.status === 204) {
-      /* empty */
+    if (request.status === 200) {
+      const table = document.querySelector('#recyclebinTable tbody')! as HTMLTableElement;
+      const tbody = document.createElement('tbody');
+
+      const plugins = (await request.json()) as Record<string, Manifest>;
+      for (const [pluginName, pluginManifest] of Object.entries(plugins)) {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-plugin', pluginName);
+
+        // package
+        const pack = document.createElement('td');
+        pack.textContent = pluginName;
+        tr.append(pack);
+
+        // name
+        const name = document.createElement('td');
+        name.textContent = pluginManifest.name;
+        tr.append(name);
+
+        // version
+        const version = document.createElement('td');
+        version.textContent = pluginManifest.version ?? null;
+        tr.append(version);
+
+        // Manage
+        const manage = document.createElement('td');
+        const restore = document.createElement('button');
+        restore.classList.add('button');
+        restore.textContent = 'Restore';
+        restore.addEventListener('click', () => void restorePlugin(tr));
+        manage.append(restore);
+        tr.append(manage);
+
+        tbody.appendChild(tr);
+      }
+
+      table.replaceWith(tbody);
     } else {
-      /* empty */
+      showErrorPopup(await request.text());
     }
-    const table = document.querySelector('#recyclebinTable tbody')! as HTMLTableElement;
-
-    const tbody = document.createElement('tbody');
-
-    const res = (await request.json()) as Record<string, Manifest>;
-    const plugins = Object.keys(res);
-
-    for (let i = 0; i < plugins.length; i++) {
-      const tr = document.createElement('tr');
-      tr.setAttribute('id', `recyclebin-${plugins[i]}`);
-
-      // package
-      const pack = document.createElement('td');
-      pack.setAttribute('data-plugin', plugins[i]);
-      pack.innerText = plugins[i];
-      tr.append(pack);
-
-      // Manage
-      const manage = document.createElement('td');
-      const restore = document.createElement('button');
-      restore.setAttribute('class', 'button');
-      restore.setAttribute('data-plugin', plugins[i]);
-      restore.innerText = 'Restore';
-      restore.addEventListener('click', () => void restorePlugin(restore.dataset.plugin!));
-      manage.append(restore);
-      tr.append(manage);
-
-      tbody.appendChild(tr);
-    }
-
-    table.replaceWith(tbody);
   } catch (error) {
     showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
-async function removePlugin(plugin: string) {
+async function removePlugin(row: HTMLTableRowElement) {
   startWaiting();
   try {
+    const plugin = row.getAttribute('data-plugin')!;
     const request = await fetch(`api/plugin/${plugin}`, {method: 'DELETE'});
     if (request.status === 204) {
-      const elem = document.getElementById(`manage-${plugin}`) as HTMLTableRowElement;
-      // FIXME: remove after enable error
-      elem.remove();
+      row.remove();
       stopWaiting();
       alert('Plugin deleted, it is now in the Recycle Bin tab.');
     } else {
@@ -319,19 +267,18 @@ async function removePlugin(plugin: string) {
   }
 }
 
-async function restorePlugin(plugin: string) {
+async function restorePlugin(row: HTMLTableRowElement) {
   startWaiting();
   try {
+    const plugin = row.getAttribute('data-plugin')!;
     const request = await fetch(`api/plugin/${plugin}/restore`, {method: 'PATCH'});
-    if (request.status !== 204) {
-      const error: Error = (await request.json()) as Error;
-      showErrorPopup(error.message);
+    if (request.status === 204) {
+      row.remove();
       stopWaiting();
-    } else {
-      stopWaiting();
-      const elem = document.getElementById(`recyclebin-${plugin}`) as HTMLTableRowElement;
-      elem.remove();
       alert('Plugin restored, it is now in the Manage Plugins tab.');
+    } else {
+      showErrorPopup(await request.text());
+      stopWaiting();
     }
   } catch (error) {
     stopWaiting();
@@ -339,34 +286,35 @@ async function restorePlugin(plugin: string) {
   }
 }
 
-async function changeState(plugin: string) {
+async function changeState(row: HTMLTableRowElement) {
   startWaiting();
 
-  const state = document.getElementById(`state-${plugin}`) as HTMLSpanElement;
-  const stateButton = document.getElementById(`stateButton-${plugin}`) as HTMLButtonElement;
-  const removeButton = document.getElementById(`removeButton-${plugin}`) as HTMLButtonElement;
   try {
-    if (state.getAttribute('class') === 'tag-active') {
-      let request = await fetch(`api/plugin/${plugin}/disable`, {method: 'PATCH'});
+    const plugin = row.getAttribute('data-plugin')!;
+    const state = row.querySelector('.state') as HTMLSpanElement;
+    const stateButton = row.querySelector('.stateButton') as HTMLButtonElement;
+    const removeButton = row.querySelector('.removeButton') as HTMLButtonElement;
+    if (state.classList.contains('tag-active')) {
+      const request = await fetch(`api/plugin/${plugin}/disable`, {method: 'PATCH'});
       if (request.status === 204) {
-        state.innerHTML = 'DISABLED';
-        state.setAttribute('class', 'tag-disabled');
-        stateButton.innerHTML = 'Enable';
+        state.textContent = 'DISABLED';
+        state.classList.toggle('tag-active');
+        state.classList.toggle('tag-disabled');
+        stateButton.textContent = 'Enable';
         removeButton.disabled = true;
       } else {
-        const error: Error = (await request.json()) as Error;
-        showErrorPopup(error.message);
+        showErrorPopup(await request.text());
       }
     } else {
-      let request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
+      const request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
       if (request.status === 204) {
-        state.innerHTML = 'ENABLED';
-        state.setAttribute('class', 'tag-active');
-        stateButton.innerHTML = 'Disable';
+        state.textContent = 'ENABLED';
+        state.classList.toggle('tag-active');
+        state.classList.toggle('tag-disabled');
+        stateButton.textContent = 'Disable';
         removeButton.disabled = false;
       } else {
-        const error: Error = (await request.json()) as Error;
-        showErrorPopup(error.message);
+        showErrorPopup(await request.text());
       }
     }
     stopWaiting();
@@ -384,7 +332,7 @@ async function purgePlugins() {
   ) {
     startWaiting();
     const request = await fetch('api/purge?filter=recyclebin', {method: 'DELETE'});
-    if (request.status >= 200 && request.status < 300) {
+    if (request.status === 204) {
       await recyclebin();
     } else {
       showErrorPopup(await request.text());
@@ -404,58 +352,63 @@ async function restartPlugins() {
   stopWaiting();
 }
 
-async function addPlugin() {
+async function addPluginInit() {
   try {
     const request = await fetch(`api/plugins?filter=available`);
-    const container = document.querySelector('#radioContainer')! as HTMLFormElement;
+    const radioContainer = document.querySelector('#radioContainer')! as HTMLDivElement;
 
-    const res = (await request.json()) as Record<string, InstalledPlugin>;
-    const plugins = Object.keys(res);
+    // Create selection for built-in plugins
+    const plugins = (await request.json()) as Record<string, Manifest>;
+    for (const [, pluginManifest] of Object.entries(plugins)) {
+      const officialPluginContainer = document.createElement('div');
 
-    for (let i = 0; i < plugins.length; i++) {
-      const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
       // radio
       const radio = document.createElement('input');
-      radio.setAttribute('value', act.name);
+      radio.setAttribute('value', pluginManifest.name);
       radio.setAttribute('type', 'radio');
       radio.setAttribute('name', 'addPluginRadio');
-      radio.setAttribute('id', `radio-${act.name}`);
-      if (act.name === 'plugin-manager') {
+      radio.setAttribute('id', `radio-${pluginManifest.name}`);
+      if (pluginManifest.name === 'plugin-manager') {
         radio.disabled = true;
       }
+      officialPluginContainer.appendChild(radio);
+
       // label
       const label = document.createElement('label');
-      label.setAttribute('for', `radio-${act.name as string}`);
-      label.innerText = `official plugin: ${act.name as string} v${act.version as string}`;
+      label.setAttribute('for', `radio-${pluginManifest.name}`);
+      label.textContent = `Official plugin: ${pluginManifest.name} v${pluginManifest.version}`;
+      officialPluginContainer.appendChild(label);
 
-      container.appendChild(radio);
-      container.appendChild(label);
-      container.appendChild(document.createElement('br'));
+      radioContainer.appendChild(officialPluginContainer);
     }
+
+    // Create selection for custom upload plugin
+    const uploadedPluginContainer = document.createElement('div');
     const radio = document.createElement('input');
     // radio
     radio.setAttribute('value', 'upload');
     radio.setAttribute('type', 'radio');
     radio.setAttribute('name', 'addPluginRadio');
     radio.setAttribute('id', 'radio-upload');
-
     radio.checked = true;
+    uploadedPluginContainer.appendChild(radio);
+
     // label
     const label = document.createElement('label');
     label.setAttribute('for', 'radio-upload');
     label.setAttribute('id', 'custom-plugin-manifest');
-    label.innerHTML = 'upload a plugin: n/a';
+    label.innerHTML = 'Uploaded plugin: <span id="uploadedPlugin">n/a</span>';
+    uploadedPluginContainer.appendChild(label);
+
     // file
     const file = document.createElement('input');
     file.setAttribute('type', 'file');
     file.setAttribute('id', 'importFile');
     file.setAttribute('name', 'importFile');
-    file.onchange = newPluginParsing;
+    file.addEventListener('change', () => void newPluginParsing());
+    uploadedPluginContainer.appendChild(file);
 
-    container.appendChild(radio);
-    container.appendChild(label);
-    container.appendChild(file);
-    container.appendChild(document.createElement('br'));
+    radioContainer.appendChild(uploadedPluginContainer);
   } catch (error) {
     showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
@@ -463,33 +416,33 @@ async function addPlugin() {
 
 async function installPlugin() {
   startWaiting();
-  const radio = document.getElementsByName('addPluginRadio') as NodeListOf<HTMLInputElement>;
+  const radio = document.querySelector('input[name="addPluginRadio"]:checked') as HTMLInputElement;
 
-  for (let i = 0; i < radio.length; i++) {
-    if (radio[i].checked) {
-      if (radio[i].value !== 'upload') {
-        const error = document.getElementById('fileError') as HTMLDivElement;
-        error.innerText = '';
-        const request = await fetch(`api/install-available/${radio[i].value}`, {method: 'POST'});
-        if (request.status === 200) {
-          await managePlugins();
-          stopWaiting();
-        }
-      } else {
-        await readFile();
-      }
+  if (radio.value !== 'upload') {
+    const error = document.getElementById('fileError') as HTMLDivElement;
+    error.textContent = '';
+    const request = await fetch(`api/install-available/${radio.value}`, {method: 'POST'});
+    if (request.status === 200) {
+      await managePlugins();
+      stopWaiting();
+    } else {
+      stopWaiting();
+      showErrorPopup(await request.text());
     }
+  } else {
+    await readFile();
+    stopWaiting();
   }
 }
 
 async function readFile() {
+  startWaiting();
+
   const inputFile = document.getElementById('importFile') as HTMLInputElement;
   const error = document.getElementById('fileError') as HTMLDivElement;
-
   if (inputFile && inputFile.files && inputFile.files.length > 0) {
     // clear possible previous file errors
-    error.innerHTML = '';
-    startWaiting();
+    error.textContent = '';
     const plugin = inputFile.files[0];
     const data = new FormData();
     data.append('plugin', plugin);
@@ -498,22 +451,26 @@ async function readFile() {
       method: 'POST',
       body: data
     });
-    if (response.status >= 200 && response.status < 300) {
+    if (response.status === 200) {
       await managePlugins();
     } else {
       showErrorPopup(await response.text());
     }
   } else {
-    error.innerText = 'Select a valid file!';
+    error.textContent = 'Select a valid file!';
   }
+
   stopWaiting();
 }
 
 async function newPluginParsing() {
+  startWaiting();
+
   const inputFile = document.getElementById('importFile') as HTMLInputElement;
+  // Seletc this radio by default
+  (document.getElementById('radio-upload') as HTMLInputElement).checked = true;
 
   if (inputFile && inputFile.files) {
-    startWaiting();
     if (inputFile.files.length === 1) {
       const plugin = inputFile.files[0];
       const data = new FormData();
@@ -523,29 +480,30 @@ async function newPluginParsing() {
         method: 'POST',
         body: data
       });
-
-      if (response.status >= 200 && response.status < 300) {
+      if (response.status === 200) {
         const manifest = (await response.json()) as Manifest;
         document.getElementById(
-          'custom-plugin-manifest'
-        )!.innerText = `upload a plugin: ${manifest.name} v${manifest.version}`;
+          'uploadedPlugin'
+        )!.textContent = `${manifest.name} v${manifest.version}`;
       } else {
-        showErrorPopup(await response.text());
         inputFile.value = '';
+        showErrorPopup(await response.text());
       }
     } else {
-      document.getElementById('custom-plugin-manifest')!.innerText = 'upload a plugin: n/a';
+      document.getElementById('uploadedPlugin')!.textContent = 'n/a';
     }
   } else {
     const error = document.getElementById('fileError') as HTMLDivElement;
-    error.innerHTML = 'Select a valid file! ';
+    error.textContent = 'Select a valid file!';
   }
+
   stopWaiting();
 }
 
 function init() {
   const urlParams = new URLSearchParams(location.search);
 
+  startWaiting();
   fetch(`api/authorize`)
     .then(async (response) => {
       if (response.status === 204) {
@@ -580,27 +538,23 @@ function init() {
           .addEventListener('click', () => tabHistory('recyclebin'));
         document.getElementById('recyclebin')!.addEventListener('click', () => void recyclebin());
 
-        await addPlugin();
+        await addPluginInit();
         (
           document.getElementById(urlParams.get('tab') || 'pluginStatus') ||
           document.getElementById('pluginStatus')!
         ).click();
       } else {
-        const close = document.getElementById('closePopup') as HTMLElement;
-        close.parentElement?.removeChild(close);
-
-        document.getElementById('errorPopup')?.classList.add('hider');
-
-        showErrorPopup("You don't have access to this plugin. Please contact your administrator.");
+        showErrorPopup(
+          "You don't have access to this plugin. Please contact your administrator.",
+          true
+        );
       }
     })
     .catch((error) => {
-      const close = document.getElementById('closePopup') as HTMLElement;
-      close.parentElement?.removeChild(close);
-
-      document.getElementById('errorPopup')?.classList.add('hider');
-
-      showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+      showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error), true);
+    })
+    .finally(() => {
+      stopWaiting();
     });
 }
 

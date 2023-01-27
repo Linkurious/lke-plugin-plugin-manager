@@ -6,6 +6,10 @@ h1 {
   box-sizing: border-box;
 }
 
+.none {
+  display: none;
+}
+
 body {
   font-family: "Haas Grot Text R Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: rgb(240, 240, 240);
@@ -321,7 +325,7 @@ input {
   opacity: 1;
 }
 
-#errorPopup {
+.popupContainer {
   position: fixed;
   top: 0;
   left: 0;
@@ -332,17 +336,17 @@ input {
   transition: opacity 0.5s;
 }
 
-#errorPopup {
+.popupContainer {
   visibility: hidden;
   opacity: 0;
 }
 
-#errorPopup.show {
+.popupContainer.show {
   visibility: visible;
   opacity: 1;
 }
 
-#errorPopup.hider {
+.popupContainer.hider {
   background: rgb(180, 180, 180);
   transition: none;
 }
@@ -399,7 +403,7 @@ input {
   cursor: pointer;
 }
 
-#errorDisplay {
+.popup .messageDisplay {
   padding-left: 20px;
 }
 

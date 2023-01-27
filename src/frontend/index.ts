@@ -12,22 +12,28 @@ function stopWaiting() {
   document.getElementById('spinner')?.classList.remove('show');
 }
 
-function showErrorPopup(message: string, blockApp = false) {
-  const errorPopup = document.getElementById('errorPopup') as HTMLDivElement;
-  const errorMessage = document.getElementById('errorMessage') as HTMLParagraphElement;
-  errorMessage.textContent = message;
+function showPopup(style: 'info' | 'error', message: string, blockApp = false) {
+  const popup = document.getElementById('popup') as HTMLDivElement;
+  const close = popup.querySelector('.close') as HTMLAnchorElement;
+  const titleElement = popup.querySelector('.popupTitle') as HTMLHeadingElement;
+  const messageElement = popup.querySelector('.popupMessage') as HTMLParagraphElement;
+
+  titleElement.textContent = style === 'info' ? 'Information' : 'Error';
+  messageElement.textContent = message;
 
   if (blockApp) {
-    const close = document.getElementById('closePopup') as HTMLElement;
-    close.remove();
-    errorPopup.classList.add('hider');
+    close.classList.add('.none');
+    popup.classList.add('hider');
+  } else {
+    close.classList.remove('.none');
+    popup.classList.remove('hider');
   }
 
-  errorPopup.classList.add('show');
+  popup.classList.add('show');
 }
 
-function closeErrorPopup() {
-  document.getElementById('errorPopup')?.classList.remove('show');
+function closePopup(this: HTMLDivElement) {
+  this.closest('.popupContainer')?.classList.remove('show');
 }
 
 function toggleAddMenu() {
@@ -106,7 +112,7 @@ async function managePlugins() {
         tbody.appendChild(createManagePluginsRow(pluginName, pluginManifest, 'enabled'));
       }
     } else {
-      showErrorPopup(await requestEnabled.text());
+      showPopup('error', await requestEnabled.text());
     }
 
     // Fill the tale with the list of disabled plugins
@@ -117,12 +123,12 @@ async function managePlugins() {
         tbody.appendChild(createManagePluginsRow(pluginName, pluginManifest, 'disabled'));
       }
     } else {
-      showErrorPopup(await requestDisabled.text());
+      showPopup('error', await requestDisabled.text());
     }
 
     table.replaceWith(tbody);
   } catch (error) {
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -192,10 +198,10 @@ async function pluginStatus() {
 
       table.replaceWith(tbody);
     } else {
-      showErrorPopup(await request.text());
+      showPopup('error', await request.text());
     }
   } catch (error) {
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -241,10 +247,10 @@ async function recyclebin() {
 
       table.replaceWith(tbody);
     } else {
-      showErrorPopup(await request.text());
+      showPopup('error', await request.text());
     }
   } catch (error) {
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -256,14 +262,14 @@ async function removePlugin(row: HTMLTableRowElement) {
     if (request.status === 204) {
       row.remove();
       stopWaiting();
-      alert('Plugin deleted, it is now in the Recycle Bin tab.');
+      showPopup('info', 'Plugin deleted, it is now in the Recycle Bin tab.');
     } else {
       stopWaiting();
-      showErrorPopup(await request.text());
+      showPopup('error', await request.text());
     }
   } catch (error) {
     stopWaiting();
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -275,14 +281,17 @@ async function restorePlugin(row: HTMLTableRowElement) {
     if (request.status === 204) {
       row.remove();
       stopWaiting();
-      alert('Plugin restored, it is now in the Manage Plugins tab.');
+      showPopup(
+        'info',
+        'Plugin restored successfully, it is now visible in the Manage Plugins tab.'
+      );
     } else {
-      showErrorPopup(await request.text());
+      showPopup('error', await request.text());
       stopWaiting();
     }
   } catch (error) {
     stopWaiting();
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -303,7 +312,7 @@ async function changeState(row: HTMLTableRowElement) {
         stateButton.textContent = 'Enable';
         removeButton.disabled = true;
       } else {
-        showErrorPopup(await request.text());
+        showPopup('error', await request.text());
       }
     } else {
       const request = await fetch(`api/plugin/${plugin}/enable`, {method: 'PATCH'});
@@ -314,13 +323,13 @@ async function changeState(row: HTMLTableRowElement) {
         stateButton.textContent = 'Disable';
         removeButton.disabled = false;
       } else {
-        showErrorPopup(await request.text());
+        showPopup('error', await request.text());
       }
     }
     stopWaiting();
   } catch (error) {
     stopWaiting();
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -335,7 +344,7 @@ async function purgePlugins() {
     if (request.status === 204) {
       await recyclebin();
     } else {
-      showErrorPopup(await request.text());
+      showPopup('error', await request.text());
     }
     stopWaiting();
   }
@@ -347,7 +356,7 @@ async function restartPlugins() {
   if (request.status === 204) {
     await pluginStatus();
   } else {
-    showErrorPopup(await request.text());
+    showPopup('error', await request.text());
   }
   stopWaiting();
 }
@@ -410,7 +419,7 @@ async function addPluginInit() {
 
     radioContainer.appendChild(uploadedPluginContainer);
   } catch (error) {
-    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
+    showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -425,42 +434,38 @@ async function installPlugin() {
     if (request.status === 200) {
       await managePlugins();
       stopWaiting();
+      showPopup('info', 'Official built-in plugin installed successfully.');
     } else {
       stopWaiting();
-      showErrorPopup(await request.text());
+      showPopup('error', await request.text());
     }
   } else {
-    await readFile();
-    stopWaiting();
-  }
-}
+    const inputFile = document.getElementById('importFile') as HTMLInputElement;
+    const error = document.getElementById('fileError') as HTMLDivElement;
+    if (inputFile && inputFile.files && inputFile.files.length > 0) {
+      // clear possible previous file errors
+      error.textContent = '';
+      const plugin = inputFile.files[0];
+      const data = new FormData();
+      data.append('plugin', plugin);
 
-async function readFile() {
-  startWaiting();
-
-  const inputFile = document.getElementById('importFile') as HTMLInputElement;
-  const error = document.getElementById('fileError') as HTMLDivElement;
-  if (inputFile && inputFile.files && inputFile.files.length > 0) {
-    // clear possible previous file errors
-    error.textContent = '';
-    const plugin = inputFile.files[0];
-    const data = new FormData();
-    data.append('plugin', plugin);
-
-    const response = await fetch('api/upload', {
-      method: 'POST',
-      body: data
-    });
-    if (response.status === 200) {
-      await managePlugins();
+      const response = await fetch('api/upload', {
+        method: 'POST',
+        body: data
+      });
+      if (response.status === 200) {
+        await managePlugins();
+        showPopup('info', 'Uploaded plugin installed successfully.');
+        stopWaiting();
+      } else {
+        showPopup('error', await response.text());
+        stopWaiting();
+      }
     } else {
-      showErrorPopup(await response.text());
+      error.textContent = 'Select a valid file!';
+      stopWaiting();
     }
-  } else {
-    error.textContent = 'Select a valid file!';
   }
-
-  stopWaiting();
 }
 
 async function newPluginParsing() {
@@ -487,7 +492,7 @@ async function newPluginParsing() {
         )!.textContent = `${manifest.name} v${manifest.version}`;
       } else {
         inputFile.value = '';
-        showErrorPopup(await response.text());
+        showPopup('error', await response.text());
       }
     } else {
       document.getElementById('uploadedPlugin')!.textContent = 'n/a';
@@ -508,11 +513,13 @@ function init() {
     .then(async (response) => {
       if (response.status === 204) {
         document.getElementById('addButton')!.onclick = toggleAddMenu;
-        document.getElementById('closePopup')!.onclick = closeErrorPopup;
         document.getElementById('installButton')!.onclick = installPlugin;
         document.getElementById('restartButton')!.onclick = restartPlugins;
         document.getElementById('restartButtonBis')!.onclick = restartPlugins;
         document.getElementById('purgeButton')!.onclick = purgePlugins;
+        document
+          .querySelectorAll('.popup .close')
+          .forEach((p) => (<HTMLAnchorElement>p).addEventListener('click', closePopup));
 
         const tabHistory = (param: string) =>
           window.history.replaceState(
@@ -544,14 +551,15 @@ function init() {
           document.getElementById('pluginStatus')!
         ).click();
       } else {
-        showErrorPopup(
+        showPopup(
+          'error',
           "You don't have access to this plugin. Please contact your administrator.",
           true
         );
       }
     })
     .catch((error) => {
-      showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error), true);
+      showPopup('error', error instanceof Error ? error.message : JSON.stringify(error), true);
     })
     .finally(() => {
       stopWaiting();

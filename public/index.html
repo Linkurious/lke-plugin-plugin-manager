@@ -22,8 +22,8 @@
             List of plugins currently deployed on the system.<br>
             If you installed a new plugin but you do not see it, you need to use the <code>RESTART</code> button to
             re-deploy all the plugins.<br>
-            Be carefull as this operation will temporarly make inavailable current deployed plugins.<br>
-            Plugins with a <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs. </div>
+            Be carefull as this operation will temporarly make unavailable current deployed plugins.<br>
+            Plugins with an <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs. </div>
           <div class="table-container">
             <button class="button restartButton" id="restartButton">RESTART</button>
             <table id="statusTable">
@@ -57,9 +57,9 @@
             List of plugins available on the system.<br>
             Only the one with <code>ENABLED</code> state will be deployed at the next restart of the plugins.<br>
             You cannot make any actions on the plugin-manager it self. You can <code>ADD</code> new plugins either from
-            the list of official plugins embededd in your Linkurious Enterprise installation or manually upload a new
+            the list of official built-in plugins in your Linkurious Enterprise installation or manually upload a new
             one.<br>
-            Remember: after installing a new plugin, you need to use the <code>RESTART</code> button to deploy them.
+            Remember: after installing a new plugin, you need to use the <code>RESTART</code> button to deploy it.
           </div>
           <div class="table-container">
             <button class="button addButton hasNext" id="addButton">ADD</button>
@@ -98,17 +98,17 @@
         </div>
       </div>
       <div class="tab">
-        <input type="radio" name="css-tabs" id="backup" class="tab-switch">
-        <label for="backup" class="tab-label disable-select">Backups</label>
+        <input type="radio" name="css-tabs" id="recyclebin" class="tab-switch">
+        <label for="recyclebin" class="tab-label disable-select">Recycle Bin</label>
         <div class="tab-content">
           <div class="tab-description">
-            List of plugins that have either been manually deleted or automatically backed up before being replaced by a
+            List of plugins that have either been manually deleted or automatically deleted before being replaced by a
             new file with the same name.<br>
             It is helpful to restore the previous file in case of problems after a new installation.<br>
-            Warning: pressing the <code>PURGE</code> button will permanently delete all the backed up plugins.</div>
+            Warning: pressing the <code>EMPTY BIN</code> button will permanently empty the plugins recycle bin.</div>
           <div class="table-container">
-            <button class="button purgeButton" id="purgeButton">PURGE</button>
-            <table id="backupTable">
+            <button class="button purgeButton" id="purgeButton">EMPTY BIN</button>
+            <table id="recyclebinTable">
               <thead>
                 <tr>
                   <th> Package</th>

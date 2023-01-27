@@ -22,13 +22,16 @@ import {
 function validateParameters(config: Partial<PluginConfig>): void {
   if (config.maxUploadSizeMb === null || config.maxUploadSizeMb === undefined) {
     config.maxUploadSizeMb = 20;
-  } else if (typeof config.maxUploadSizeMb !== 'number') {
+  } else if (!isFinite(config.maxUploadSizeMb)) {
     console.error('Invalid `maxUploadSizeMb` configuration parameter. It should be a number.');
     process.exit(1);
   }
 }
 
-export = async function configureRoutes(options: PluginRouteOptions<PluginConfig>): Promise<void> {
+export = async function configureRoutes(
+  // serverRootFolder: new parameter added later in LKE v3.1.x
+  options: PluginRouteOptions<PluginConfig> & {serverRootFolder?: string}
+): Promise<void> {
   console.log = loggerFormatter(console.log);
   console.warn = loggerFormatter(console.warn);
   console.info = loggerFormatter(console.info);
@@ -36,7 +39,7 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   console.debug = loggerFormatter(console.debug);
 
   validateParameters(options.configuration);
-  const manager = new PluginManager();
+  const manager = new PluginManager(options.serverRootFolder);
   await manager.initialize();
 
   options.router.use(express.json());
@@ -178,7 +181,7 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   /**
    * Get the list of the plugins files in a specific folder
    *
-   * @param filter: null | "available" | "deployed" | "enabled" | "disabled" | "backup"
+   * @param filter: null | "available" | "deployed" | "enabled" | "disabled" | "recyclebin"
    */
   options.router.get(
     '/plugins',
@@ -193,13 +196,13 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
           return await manager.getListOfPlugins(PluginDeploymentStatus.ENABLED);
         case 'disabled':
           return await manager.getListOfPlugins(PluginDeploymentStatus.DISABLED);
-        case 'backup':
-          return await manager.getListOfPlugins(PluginDeploymentStatus.BACKUP);
+        case 'recyclebin':
+          return await manager.getListOfPlugins(PluginDeploymentStatus.RECYCLEBIN);
         default:
           throw new ParameterExceptionPluginError(
             'filter',
             req.query.filter,
-            ['available', 'deployed', 'enabled', 'disabled', 'backup'],
+            ['available', 'deployed', 'enabled', 'disabled', 'recyclebin'],
             true
           );
       }
@@ -243,7 +246,7 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   );
 
   /**
-   * Restore a backuped version of a plugin before it's installation
+   * Restore a plugin from the recyclebin
    *
    * @param fileName: the file name of the plugin
    */
@@ -269,7 +272,7 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
   /**
    * Purge a specific folder
    *
-   * @param filter: "disabled" | "backup"
+   * @param filter: "disabled" | "recyclebin"
    */
   options.router.delete(
     '/purge',
@@ -277,13 +280,13 @@ export = async function configureRoutes(options: PluginRouteOptions<PluginConfig
       switch (req.query.filter) {
         case 'disabled':
           return await manager.purgeDirectory(PluginDeploymentStatus.DISABLED);
-        case 'backup':
-          return await manager.purgeDirectory(PluginDeploymentStatus.BACKUP);
+        case 'recyclebin':
+          return await manager.purgeDirectory(PluginDeploymentStatus.RECYCLEBIN);
         default:
           throw new ParameterExceptionPluginError(
             'filter',
             req.query.filter,
-            ['disabled', 'backup'],
+            ['disabled', 'recyclebin'],
             true
           );
       }

@@ -2,6 +2,8 @@ import {InstalledPlugin} from '@linkurious/rest-client';
 
 import {Manifest} from '../backend/PluginParser';
 
+import {updateURLParameter} from './utils';
+
 function startWaiting() {
   document.getElementById('spinner')?.classList.add('show');
 }
@@ -108,7 +110,6 @@ async function managePlugins() {
 
       for (let i = 0; i < plugins.length; i++) {
         const act: InstalledPlugin = res[plugins[i]] as InstalledPlugin;
-
         const tr = document.createElement('tr');
 
         // package
@@ -166,7 +167,7 @@ async function managePlugins() {
 
     table.replaceWith(tbody);
   } catch (error) {
-    showErrorPopup((error as Error).message as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -249,20 +250,20 @@ async function pluginStatus() {
       showErrorPopup(error.message);
     }
   } catch (error) {
-    showErrorPopup((error as Error).message as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
-// Backup tab
-async function backup() {
+// Recycle Bin tab
+async function recyclebin() {
   try {
-    const request = await fetch(`api/plugins?filter=backup`);
+    const request = await fetch(`api/plugins?filter=recyclebin`);
     if (request.status === 204) {
       /* empty */
     } else {
       /* empty */
     }
-    const table = document.querySelector('#backupTable tbody')! as HTMLTableElement;
+    const table = document.querySelector('#recyclebinTable tbody')! as HTMLTableElement;
 
     const tbody = document.createElement('tbody');
 
@@ -271,7 +272,7 @@ async function backup() {
 
     for (let i = 0; i < plugins.length; i++) {
       const tr = document.createElement('tr');
-      tr.setAttribute('id', `backup-${plugins[i]}`);
+      tr.setAttribute('id', `recyclebin-${plugins[i]}`);
 
       // package
       const pack = document.createElement('td');
@@ -294,7 +295,7 @@ async function backup() {
 
     table.replaceWith(tbody);
   } catch (error) {
-    showErrorPopup(error as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -304,14 +305,17 @@ async function removePlugin(plugin: string) {
     const request = await fetch(`api/plugin/${plugin}`, {method: 'DELETE'});
     if (request.status === 204) {
       const elem = document.getElementById(`manage-${plugin}`) as HTMLTableRowElement;
-      elem.parentNode?.removeChild(elem);
+      // FIXME: remove after enable error
+      elem.remove();
       stopWaiting();
+      alert('Plugin deleted, it is now in the Recycle Bin tab.');
     } else {
-      // showErrorPopup(request.json().message)
+      stopWaiting();
+      showErrorPopup(await request.text());
     }
   } catch (error) {
     stopWaiting();
-    showErrorPopup(error as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -322,11 +326,16 @@ async function restorePlugin(plugin: string) {
     if (request.status !== 204) {
       const error: Error = (await request.json()) as Error;
       showErrorPopup(error.message);
+      stopWaiting();
+    } else {
+      stopWaiting();
+      const elem = document.getElementById(`recyclebin-${plugin}`) as HTMLTableRowElement;
+      elem.remove();
+      alert('Plugin restored, it is now in the Manage Plugins tab.');
     }
-    stopWaiting();
   } catch (error) {
     stopWaiting();
-    showErrorPopup(error as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -363,19 +372,25 @@ async function changeState(plugin: string) {
     stopWaiting();
   } catch (error) {
     stopWaiting();
-    showErrorPopup((error as Error).message as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
 async function purgePlugins() {
+  if (
+    confirm(
+      'Do you want to permanently delete all the plugins in the recyle bin? The action is not reversible.'
+    )
+  ) {
     startWaiting();
-    const request = await fetch('api/purge?filter=backup', {method: 'DELETE'});
+    const request = await fetch('api/purge?filter=recyclebin', {method: 'DELETE'});
     if (request.status >= 200 && request.status < 300) {
-      await backup();
+      await recyclebin();
     } else {
       showErrorPopup(await request.text());
     }
     stopWaiting();
+  }
 }
 
 async function restartPlugins() {
@@ -442,7 +457,7 @@ async function addPlugin() {
     container.appendChild(file);
     container.appendChild(document.createElement('br'));
   } catch (error) {
-    showErrorPopup(error as string);
+    showErrorPopup(error instanceof Error ? error.message : JSON.stringify(error));
   }
 }
 
@@ -486,8 +501,6 @@ async function readFile() {
     if (response.status >= 200 && response.status < 300) {
       await managePlugins();
     } else {
-      const close = document.getElementById('closePopup') as HTMLElement;
-
       showErrorPopup(await response.text());
     }
   } else {
@@ -530,48 +543,6 @@ async function newPluginParsing() {
   stopWaiting();
 }
 
-function updateURLParameter(url: string, param: string, paramVal: string): string {
-  let TheAnchor = null;
-  let newAdditionalURL = '';
-  let tempArray = url.split('?');
-  let baseURL = tempArray[0];
-  let additionalURL = tempArray[1];
-  let temp = '';
-
-  if (additionalURL) {
-    let tmpAnchor = additionalURL.split('#');
-    let TheParams = tmpAnchor[0];
-    TheAnchor = tmpAnchor[1];
-    if (TheAnchor) {
-      additionalURL = TheParams;
-    }
-
-    tempArray = additionalURL.split('&');
-
-    for (let i = 0; i < tempArray.length; i++) {
-      if (tempArray[i].split('=')[0] !== param) {
-        newAdditionalURL += temp + tempArray[i];
-        temp = '&';
-      }
-    }
-  } else {
-    let tmpAnchor = baseURL.split('#');
-    let TheParams = tmpAnchor[0];
-    TheAnchor = tmpAnchor[1];
-
-    if (TheParams) {
-      baseURL = TheParams;
-    }
-  }
-
-  if (TheAnchor) {
-    paramVal += '#' + TheAnchor;
-  }
-
-  const rows_txt = temp + '' + param + '=' + paramVal;
-  return baseURL + '?' + newAdditionalURL + rows_txt;
-}
-
 function init() {
   const urlParams = new URLSearchParams(location.search);
 
@@ -592,12 +563,22 @@ function init() {
             updateURLParameter(window.location.href, 'tab', param)
           );
 
-        document.getElementById('pluginStatus')!.addEventListener('click', () => tabHistory('pluginStatus'));
-        document.getElementById('pluginStatus')!.addEventListener('click', () => void pluginStatus());
-        document.getElementById('managePlugins')!.addEventListener('click', () => tabHistory('managePlugins'));
-        document.getElementById('managePlugins')!.addEventListener('click', () => void managePlugins());
-        document.getElementById('backup')!.addEventListener('click', () => tabHistory('backup'));
-        document.getElementById('backup')!.addEventListener('click', () => void backup());
+        document
+          .getElementById('pluginStatus')!
+          .addEventListener('click', () => tabHistory('pluginStatus'));
+        document
+          .getElementById('pluginStatus')!
+          .addEventListener('click', () => void pluginStatus());
+        document
+          .getElementById('managePlugins')!
+          .addEventListener('click', () => tabHistory('managePlugins'));
+        document
+          .getElementById('managePlugins')!
+          .addEventListener('click', () => void managePlugins());
+        document
+          .getElementById('recyclebin')!
+          .addEventListener('click', () => tabHistory('recyclebin'));
+        document.getElementById('recyclebin')!.addEventListener('click', () => void recyclebin());
 
         await addPlugin();
         (
@@ -610,7 +591,7 @@ function init() {
 
         document.getElementById('errorPopup')?.classList.add('hider');
 
-        showErrorPopup("You don't have access to this plugin. Please contact your administrator");
+        showErrorPopup("You don't have access to this plugin. Please contact your administrator.");
       }
     })
     .catch((error) => {

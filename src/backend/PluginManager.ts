@@ -20,7 +20,7 @@ export const enum PluginDeploymentStatus {
   DEPLOYED,
   ENABLED,
   DISABLED,
-  BACKUP
+  RECYCLEBIN
 }
 
 export interface UploadSuccessfulResponse {
@@ -33,10 +33,10 @@ export class PluginManager {
   private readonly lkeRoot: string | undefined;
   private readonly selfParser: PluginParser;
 
-  public constructor(
-    lkeRoot: string = path.join('..', '..', '..'),
-    pluginSource: PluginSource = '.'
-  ) {
+  public constructor(lkeRoot?: string, pluginSource: PluginSource = '.') {
+    if (!lkeRoot) {
+      lkeRoot = path.join('..', '..', '..');
+    }
     // Try to discover the lkeRoot path based on relative paths
     // Windows: LKE doesn't work with shortcuts to data data folder
     // Linux: it may fail in case of multiple symbolic links in the path
@@ -93,8 +93,8 @@ export class PluginManager {
         }
       case PluginDeploymentStatus.DISABLED:
         return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.disabled');
-      case PluginDeploymentStatus.BACKUP:
-        return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.backup');
+      case PluginDeploymentStatus.RECYCLEBIN:
+        return path.join(this.getPath(PluginDeploymentStatus.ENABLED), '.recyclebin');
       case 'logs':
         if (this.lkeRoot) {
           return path.join(this.lkeRoot, 'data', 'logs', 'plugins');
@@ -109,8 +109,8 @@ export class PluginManager {
     if (!fs.existsSync(this.getPath(PluginDeploymentStatus.DISABLED))) {
       fs.mkdirSync(this.getPath(PluginDeploymentStatus.DISABLED));
     }
-    if (!fs.existsSync(this.getPath(PluginDeploymentStatus.BACKUP))) {
-      fs.mkdirSync(this.getPath(PluginDeploymentStatus.BACKUP));
+    if (!fs.existsSync(this.getPath(PluginDeploymentStatus.RECYCLEBIN))) {
+      fs.mkdirSync(this.getPath(PluginDeploymentStatus.RECYCLEBIN));
     }
 
     if (!(await this.selfParser.parse())) {
@@ -199,7 +199,7 @@ export class PluginManager {
       if (fs.existsSync(dest)) {
         await this.copyPluginOnFileSystem(
           dest,
-          path.join(this.getPath(PluginDeploymentStatus.BACKUP), pluginParser.normalizedName),
+          path.join(this.getPath(PluginDeploymentStatus.RECYCLEBIN), pluginParser.normalizedName),
           true
         );
       }
@@ -288,12 +288,12 @@ export class PluginManager {
   public async restorePlugin(fileName: string): Promise<void> {
     this.validateFileName(fileName);
 
-    const srcFolder = path.join(this.getPath(PluginDeploymentStatus.BACKUP), fileName);
+    const srcFolder = path.join(this.getPath(PluginDeploymentStatus.RECYCLEBIN), fileName);
     return this.handlePlugin(
       srcFolder,
       path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName),
       async (pluginParser, srcFolder, destFolder) =>
-        this.copyPluginOnFileSystem(srcFolder, destFolder, false)
+        this.copyPluginOnFileSystem(srcFolder, destFolder, true)
     );
   }
 
@@ -303,14 +303,14 @@ export class PluginManager {
     const srcFolder = path.join(this.getPath(PluginDeploymentStatus.ENABLED), fileName);
     return this.handlePlugin(
       srcFolder,
-      path.join(this.getPath(PluginDeploymentStatus.BACKUP), fileName),
+      path.join(this.getPath(PluginDeploymentStatus.RECYCLEBIN), fileName),
       async (pluginParser, srcFolder, destFolder) =>
         this.copyPluginOnFileSystem(srcFolder, destFolder, true)
     );
   }
 
   public async purgeDirectory(
-    type: PluginDeploymentStatus.DISABLED | PluginDeploymentStatus.BACKUP
+    type: PluginDeploymentStatus.DISABLED | PluginDeploymentStatus.RECYCLEBIN
   ): Promise<void> {
     for (const file of fs.readdirSync(this.getPath(type))) {
       fs.rmSync(path.join(this.getPath(type), file), {recursive: true});

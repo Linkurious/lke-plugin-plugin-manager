@@ -3,8 +3,11 @@
 nodeJob {
   // General
   projectName = "linkurious/lke-plugin-plugin-manager"
+  podTemplateNames = ['jnlp-agent-node']
+
   runUnitTests = false
   runE2eTests = false
+  runDependencyVersionCheck = false
 
   createGitTag = true
   gitTagPrefix = 'v'

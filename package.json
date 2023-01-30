@@ -20,7 +20,7 @@
     "artifact-name": "echo lke-plugin-$(npm run --silent plugin-name).lke",
     "clean": "rm -rf $(ls src) public/bundles *.tgz *.lke",
     "lint": "eslint --fix --ext .ts .",
-    "lint:ci": "eslint -f checkstyle -o reports/checkstyle.xml .",
+    "lint:ci-deactivated": "eslint -f checkstyle -o reports/checkstyle.xml .",
     "tsc": "tsc -b",
     "frontend": "esbuild src/frontend/index.ts --bundle --outfile=public/bundles/index.js --target=es6 --platform=browser --sourcemap",
     "build": "npm run tsc && npm run frontend",

@@ -1,96 +1,154 @@
-<!doctype html>
-<html class="no-js" lang="">
+<!DOCTYPE html>
+<html>
 
 <head>
-    <meta charset="utf-8">
-    <title>Data-table plugin</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta />
+  <title>Linkurious Enterprise Plugin Manager</title>
 
-    <link rel="apple-touch-icon" href="public/icon.png">
+  <base href="/">
 
-    <link rel="stylesheet" href="./css/tabulator.min.css">
-    <link rel="stylesheet" href="./css/main.css">
-
-    <base href="/">
-
-    <meta name="theme-color" content="#fafafa">
+  <link rel="stylesheet" type="text/css" href="main.css" />
 </head>
 
 <body>
-
-<!--------------------Loader-------------------->
-<div class="loader__curtain" id="loader">
-    <div class="loader__container" id="loading">
-        <div class="progress_spinner spinner" id="spinner"></div>
-        <div class="loader__title">Processing your request…</div>
-    </div>
-    <!-- Error -->
-    <div class="loader__container hide" id="error">
-        <div class="loader__title" id="error_description"></div>
-    </div>
-</div>
-
-<!--------------------container-------------------->
-<div class="container hide" id="container">
-    <div class="container__card">
-        <!--------------------Header-------------------->
-        <div id="table_title" class="table__title"></div>
-        <div id="item_type" class="table__item-type"></div>
-        <div id="item_count" class="table__item-count"></div>
-        <div class="warning hide" id="warning">
-            <img class="warning__icon" src="img/Outlined _ AV _ not_interested.png" alt="warning"/>
-            <span id="warning_text"></span>
-
+  <h1>Linkurious Enterprise Plugin Manager</h1>
+  <div class="wrapper">
+    <div class="tabs">
+      <div class="tab">
+        <input type="radio" name="css-tabs" id="pluginStatus" checked class="tab-switch">
+        <label for="pluginStatus" class="tab-label disable-select">Status</label>
+        <div class="tab-content">
+          <div class="tab-description">
+            List of plugins currently deployed on the system.<br>
+            If you installed a new plugin but you do not see it, you need to use the <code>RESTART</code> button to
+            re-deploy all the plugins.<br>
+            Be carefull as this operation will temporarly make unavailable current deployed plugins.<br>
+            Plugins with an <code>ERROR-MANIFEST</code> state failed to deploy, so you cannot access their logs.
+          </div>
+          <div class="table-container">
+            <button class="button restartButton" id="restartButton">RESTART</button>
+            <table id="statusTable">
+              <thead>
+                <tr>
+                  <th>Plugin Name</th>
+                  <th>Version</th>
+                  <th>Plugin Instance</th>
+                  <th>State</th>
+                  <th>Logs</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="enabled">
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="button__container">
-            <button class="btn btn__secondary" id="button-edit">EDIT COLUMNS</button>
-            <button class="btn btn__primary" id="button-export">EXPORT TO CSV</button>
-        </div>
-
-        <!--------------------Table content-------------------->
-        <div id="table" class="table--container"></div>
-        <!-------------------- Pagination-------------------->
-        <div class="pagination" id="pagination">
-            <div class="pagination__details" id="pagination-details"></div>
-            <div class="pagination-action">
-                <button id="pagination-first" class="btn__secondary btn">FIRST</button>
-                <button id="pagination-prev" class="btn__secondary pagination__button btn">PREV</button>
-                <button id="pagination-page" class="btn__secondary pagination__button btn__page"></button>
-                <button id="pagination-next" class="btn__secondary pagination__button btn">NEXT</button>
-                <button id="pagination-last" class="btn__secondary pagination__button btn">LAST</button>
+      </div>
+      <div class="tab">
+        <input type="radio" name="css-tabs" id="managePlugins" class="tab-switch">
+        <label for="managePlugins" class="tab-label disable-select">Manage Plugins</label>
+        <div class="tab-content">
+          <div class="tab-description">
+            List of plugins available on the system.<br>
+            Only the one with <code>ENABLED</code> state will be deployed at the next restart of the plugins.<br>
+            You cannot make any actions on the plugin-manager it self. You can <code>ADD</code> new plugins either from
+            the list of official built-in plugins in your Linkurious Enterprise installation or manually upload a new
+            one.<br>
+            Remember: after installing a new plugin, you need to use the <code>RESTART</code> button to deploy it.
+          </div>
+          <div class="table-container">
+            <button class="button addButton hasNext" id="addButton">ADD</button>
+            <button class="button restartButton" id="restartButtonBis">RESTART</button>
+            <div id="hiding-menu">
+              <h2>Install a new plugin</h2>
+              <div id="radioContainer"></div>
+              <div>
+                <button class="button" id="installButton">Install</button>
+                <div id="fileError"></div>
+              </div>
+              <p style="font-size: 12px;">(The process might take few minutes depending on the size of the
+                package)</p>
             </div>
+            <table id="manageTable">
+              <thead>
+                <tr>
+                  <th> Package</th>
+                  <th> Plugin name</th>
+                  <th> Version</th>
+                  <th> State</th>
+                  <th> Manage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="enabled">
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
+      <div class="tab">
+        <input type="radio" name="css-tabs" id="recyclebin" class="tab-switch">
+        <label for="recyclebin" class="tab-label disable-select">Recycle Bin</label>
+        <div class="tab-content">
+          <div class="tab-description">
+            List of plugins that have either been manually deleted or automatically deleted before being replaced by a
+            new file with the same name.<br>
+            It is helpful to restore the previous file in case of problems after a new installation.<br>
+            Warning: pressing the <code>EMPTY BIN</code> button will permanently empty the plugins recycle bin.
+          </div>
+          <div class="table-container">
+            <button class="button purgeButton" id="purgeButton">EMPTY BIN</button>
+            <table id="recyclebinTable">
+              <thead>
+                <tr>
+                  <th> Package</th>
+                  <th> Plugin name</th>
+                  <th> Version</th>
+                  <th> Manage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="enabled">
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
-</div>
+  </div>
 
-<!--------------------modal-------------------->
-<div id="modal" class="modal">
-    <div class="modal__content">
-        <div class="modal__header">
-            <div class="modal__title">TABLE COLUMNS</div>
-            <span id="modal_close">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" class="stroke">
-          <path d="M61.21 60.5l-52-52m52 0l-52 52"></path>
-        </svg>
-      </span>
-        </div>
-        <div class="modal__description">Select the columns to display in the table.</div>
-        <div class="column-list" id="column-list">
+  <div id="spinner">
+    <img src="assets/spinner.gif" width="50" height="50" />
+  </div>
 
-        </div>
-        <div class="modal__footer">
-            <button class="btn btn__secondary margin-right__4" id="cancel">CANCEL</button>
-            <button class="btn btn__primary" id="confirm">CONFIRM</button>
-        </div>
-
+  <div id="popup" class="popupContainer">
+    <div class="popup">
+      <a class="close">ⓧ</a>
+      <div class="messageDisplay">
+        <h2 class="popupTitle">Title</h2>
+        <p class="popupMessage"></p>
+      </div>
     </div>
-</div>
+  </div>
 
-<!--------------------Script-------------------->
-<script src="./js/vendor/tabulator.min.js"></script>
-<script src="./js/main.js"></script>
-
+  <script src="bundles/index.js""></script>
 </body>
 
 </html>

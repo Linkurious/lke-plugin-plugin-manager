@@ -1,1 +1,5 @@
 dist/**
+backend/**
+frontend/**
+public/bundles/**
+node_modules/**

@@ -1,4 +1,4 @@
-# Plugin Manager plugin for Linkurious Enterprise
+# Plugin Manager [plugin for Linkurious Enterprise](https://doc.linkurious.com/admin-manual/latest/plugins/)
 
 This plugin allows to easily handle plugins in Linkurious Enterprise.
 

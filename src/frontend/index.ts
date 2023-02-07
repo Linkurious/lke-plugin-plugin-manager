@@ -411,6 +411,7 @@ async function addPluginInit() {
 
     // file
     const file = document.createElement('input');
+    file.setAttribute('accept', '.lke');
     file.setAttribute('type', 'file');
     file.setAttribute('id', 'importFile');
     file.setAttribute('name', 'importFile');

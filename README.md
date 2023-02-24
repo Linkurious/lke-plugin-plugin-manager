@@ -1,6 +1,32 @@
+<!-- omit in toc -->
 # Plugin Manager [plugin for Linkurious Enterprise](https://doc.linkurious.com/admin-manual/latest/plugins/)
 
 This plugin allows to easily handle plugins in Linkurious Enterprise.
+
+<!-- auto generated with https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one -->
+<!-- omit in toc -->
+## Table of contents
+- [Compatibility](#compatibility)
+- [Configurations](#configurations)
+- [URL Parameters](#url-parameters)
+- [User Manual](#user-manual)
+  - [Status tab](#status-tab)
+  - [Manage Plugins tab](#manage-plugins-tab)
+    - [Install a new plugin](#install-a-new-plugin)
+  - [Recycle Bin tab](#recycle-bin-tab)
+- [Custom APIs](#custom-apis)
+  - [Get Plugins](#get-plugins)
+  - [Get Manifest](#get-manifest)
+  - [Install an official Plugin](#install-an-official-plugin)
+  - [Upload a Plugin](#upload-a-plugin)
+  - [Disable a Plugin](#disable-a-plugin)
+  - [Enable a Plugin](#enable-a-plugin)
+  - [Restore a Plugin](#restore-a-plugin)
+  - [Remove a Plugin](#remove-a-plugin)
+  - [Purge](#purge)
+  - [Stream plugin logs](#stream-plugin-logs)
+- [Limitations](#limitations)
+- [Licensing](#licensing)
 
 # Compatibility
 

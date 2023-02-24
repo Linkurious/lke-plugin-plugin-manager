@@ -356,9 +356,7 @@ Type: `GET`
 
 **Success 200**
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `stream`  | string | A text stream with the latest logs of the plugin |
+It returns a text stream with the latest logs of the plugin.
 
 # Limitations
 

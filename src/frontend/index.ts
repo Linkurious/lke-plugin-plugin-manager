@@ -322,11 +322,14 @@ async function changeState(row: HTMLTableRowElement) {
         state.classList.toggle('tag-disabled');
         stateButton.textContent = 'Disable';
         removeButton.disabled = false;
+        managePlugins();
+        stopWaiting();
+        showPopup('info', 'Plugin state changed correctly.');
       } else {
+        stopWaiting();
         showPopup('error', await request.text());
       }
     }
-    stopWaiting();
   } catch (error) {
     stopWaiting();
     showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
@@ -411,6 +414,7 @@ async function addPluginInit() {
 
     // file
     const file = document.createElement('input');
+    file.setAttribute('accept', '.lke');
     file.setAttribute('type', 'file');
     file.setAttribute('id', 'importFile');
     file.setAttribute('name', 'importFile');

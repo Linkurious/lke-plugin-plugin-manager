@@ -15,14 +15,16 @@ This plugin allows to easily handle plugins in Linkurious Enterprise.
     - [Install a new plugin](#install-a-new-plugin)
   - [Recycle Bin tab](#recycle-bin-tab)
 - [Custom APIs](#custom-apis)
-  - [Get Plugins](#get-plugins)
-  - [Get Manifest](#get-manifest)
-  - [Install an official Plugin](#install-an-official-plugin)
-  - [Upload a Plugin](#upload-a-plugin)
-  - [Disable a Plugin](#disable-a-plugin)
-  - [Enable a Plugin](#enable-a-plugin)
-  - [Restore a Plugin](#restore-a-plugin)
-  - [Remove a Plugin](#remove-a-plugin)
+  - [Get plugins](#get-plugins)
+  - [Get Plugin Manager manifest](#get-plugin-manager-manifest)
+  - [Get generic plugin manifest](#get-generic-plugin-manifest)
+  - [Get enabled plugin manifest](#get-enabled-plugin-manifest)
+  - [Install an official plugin](#install-an-official-plugin)
+  - [Upload a plugin](#upload-a-plugin)
+  - [Disable a plugin](#disable-a-plugin)
+  - [Enable a plugin](#enable-a-plugin)
+  - [Remove a plugin](#remove-a-plugin)
+  - [Restore a plugin](#restore-a-plugin)
   - [Purge](#purge)
   - [Stream plugin logs](#stream-plugin-logs)
 - [Limitations](#limitations)
@@ -47,6 +49,8 @@ The plugin can be accessed from its home page without the need to specify any UR
 # User Manual
 
 The purpose of the plugin is to facilitate the management of individual Linkurious Enterprise plugins by allowing them to perform a set of actions: these actions will be explained more specifically in the next sections.
+
+With a default configuration, it is possible to access the plugin under the `/plugins/plugin-manager` path (e.g. `http://127.0.0.1:3000/plugins/plugin-manager`).
 
 Access to the plugin is allowed only to users who are part of the `admin` group (please, refer to [this page](https://doc.linkurious.com/admin-manual/latest/access-control/) for more information on Linkurious Enterprise access control).
 
@@ -128,17 +132,17 @@ The Plugin Manager also provides a set of custom APIs for managing plugins.
 
 As well as for use via the user interface, use of these APIs is restricted to users who are members of the `admin` group.
 
->**NOTE**: These APIs must use the Plugin Manager basePath as endpoint\
- (e.g. `https://127.0.0.1:3000/plugins/plugin-manager/api/plugins`) 
+> **NOTE**: These APIs must use the Plugin Manager basePath as endpoint
+> 
+> (e.g. to call the `/api/plugins` API, you should use an URL like `http://127.0.0.1:3000/plugins/plugin-manager/api/plugins`)
 
-
-## Get Plugins
+## Get plugins
 
 Get the list of plugins
 
 Type: `GET`
 
-```url
+```
 /api/plugins
 ```
 
@@ -146,22 +150,62 @@ Type: `GET`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `filter` *optional* | string | Type of the plugin.<br>Allowed values: `available` , `deployed`, `enabled` (*default*), `disabled`, `recyclebin` |
+| `filter` *optional* | string | The category of plugins to be retrieved.<br>Allowed values: `available`, `deployed`, `enabled` (*default*), `disabled`, `recyclebin` |
 
 **Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` | map | A map of plugins package names and their [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") |
+| `<fileName>` | [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") | The `<fileName>` is a dynamically generated string representing the package name for each plugin matching the filter criteria |
 
 ---
-## Get Manifest
+## Get Plugin Manager manifest
 
-Get the manifest of a plugin
+Get the manifest of this plugin
 
 Type: `GET`
 
-```url
+```
+/api/manifest
+```
+
+**Success 200**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| n/a | [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") | The whole response represents a manifest object |
+
+---
+## Get generic plugin manifest
+
+Extract the manifest from a plugin (uploaded through the body)
+
+Type: `POST`
+
+```
+/api/manifest
+```
+
+**Parameters**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `plugin` | HTTP file upload | The file containing the plugin to be parsed |
+
+**Success 200**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| n/a | [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") | The whole response represents a manifest object |
+
+---
+## Get enabled plugin manifest
+
+Get the manifest of an enabled plugin
+
+Type: `GET`
+
+```
 /api/plugin/:fileName
 ```
 
@@ -169,22 +213,22 @@ Type: `GET`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin package |
+| `fileName` | string | The name of the plugin package |
 
 **Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` | json  | The [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") of the selected plugin |
+| n/a | [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") | The whole response represents a manifest object |
 
 ---
-## Install an official Plugin
+## Install an official plugin
 
 Install a Linkurious Enterprise official plugin from the `available` folder of the software build
 
 Type: `POST`
 
-```url
+```
 /api/install-available/:pluginName
 ```
 
@@ -192,22 +236,24 @@ Type: `POST`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `pluginName`  | string | The name of the plugin |
+| `pluginName` | string | The name of the plugin |
 
 **Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName` | string | The package name generated by the plugin |
+| `status` | string | The result of the operation<br>Possible values: `ok` |
+| `attribute` | string | The identifier for the returned value<br>Possible values: `fileName` |
+| `attributeValue` | string | The package name generated by the system |
 
 ---
-## Upload a Plugin
+## Upload a plugin
 
-Upload and install a Linkurious Enterprise plugin
+Upload and enable a Linkurious Enterprise plugin
 
 Type: `POST`
 
-```url
+```
 /api/upload
 ```
 
@@ -215,22 +261,24 @@ Type: `POST`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `plugin`  | file | The file (an archive) containing the plugin to be installed |
+| `plugin` | HTTP file upload | The file containing the plugin to be installed |
 
 **Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName` | string | The package name generated by the plugin |
+| `status` | string | The result of the operation<br>Possible values: `ok` |
+| `attribute` | string | The identifier for the returned value<br>Possible values: `fileName` |
+| `attributeValue` | string | The package name generated by the system |
 
 ---
-## Disable a Plugin
+## Disable a plugin
 
-Disable a plugin
+Disable an enabled plugin
 
 Type: `PATCH`
 
-```url
+```
 /api/plugin/:fileName/disable
 ```
 
@@ -238,22 +286,22 @@ Type: `PATCH`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin package |
+| `fileName` | string | The name of the plugin package |
 
 **Success**
 
-```java
+```http
 HTTP/1.1 204 No Content
 ```
 
 ---
-## Enable a Plugin
+## Enable a plugin
 
-Enable a Plugin
+Enable a disabled Plugin
 
 Type: `PATCH`
 
-```url
+```
 /api/plugin/:fileName/enable
 ```
 
@@ -261,45 +309,22 @@ Type: `PATCH`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin package |
+| `fileName` | string | The name of the plugin package |
 
 **Success**
 
-```java
+```http
 HTTP/1.1 204 No Content
 ```
 
 ---
-## Restore a Plugin
+## Remove a plugin
 
-Restore a plugin from the recycle bin
-
-Type: `PATCH`
-
-```url
-/api/plugin/:fileName/restore
-```
-
-**Parameters**
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `fileName`  | string | The name of the plugin package |
-
-**Success**
-
-```java
-HTTP/1.1 204 No Content
-```
-
----
-## Remove a Plugin
-
-Remove an enabled plugin
+Move an enabled plugin to the recycle bin
 
 Type: `DELETE`
 
-```url
+```
 /api/plugin/:fileName
 ```
 
@@ -307,13 +332,37 @@ Type: `DELETE`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin package |
+| `fileName` | string | The name of the plugin package |
 
 **Success**
 
-```java
+```http
 HTTP/1.1 204 No Content
 ```
+
+---
+## Restore a plugin
+
+Restore a plugin from the recycle bin
+
+Type: `PATCH`
+
+```
+/api/plugin/:fileName/restore
+```
+
+**Parameters**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `fileName` | string | The name of the plugin package |
+
+**Success**
+
+```http
+HTTP/1.1 204 No Content
+```
+
 ---
 ## Purge
 
@@ -321,7 +370,7 @@ Purge a specific folder
 
 Type: `DELETE`
 
-```url
+```
 /api/purge
 ```
 
@@ -329,11 +378,11 @@ Type: `DELETE`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `filter`  | string | The folder to purge.<br>Allowed values: `disabled`, `recyclebin` |
+| `filter` | string | The folder to purge.<br>Allowed values: `disabled`, `recyclebin` |
 
 **Success**
 
-```java
+```http
 HTTP/1.1 204 No Content
 ```
 
@@ -344,7 +393,7 @@ Stream the logs of a plugin instance
 
 Type: `GET`
 
-```url
+```
 /api/logs/:pluginInstance
 ```
 
@@ -352,7 +401,7 @@ Type: `GET`
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `pluginInstance`  | string | The instance name of the plugin |
+| `pluginInstance` | string | The instance name of the plugin |
 
 **Success 200**
 

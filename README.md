@@ -4,7 +4,7 @@ This plugin allows to easily handle plugins in Linkurious Enterprise.
 
 # Compatibility
 
-This plugin is compatible with any version of Linkurious Enterprise however some features may be limited on versions older than v4.0.
+This plugin is compatible with Linkurious Enterprise starting from v3.1. However, some features may be limited on versions older than v4.0.
 
 # Configurations
 
@@ -40,11 +40,11 @@ The following information is available for each deployed plugin:
 
 - **Plugin Name**: the name of the plugin as defined by developers;
 - **Version**: the version of the plugin;
-- **Plugin Instance**: the endpoint to which the plugin is available; clicking on it provides quick access to the plugin
-- **State**: a tag describing the current state of the plugin; in case of errors in plugin execution, hovering the tag will display the extended error message (if any);
+- **Plugin Instance**: the endpoint to which the plugin is available; clicking on it provides quick access to the plugin;
+- **State**: describes the current state of the plugin, in case of errors any additional information will be shown when hovering with the mouse;
 - **Logs**: a button to provide quick access to the plugin logs in a new browser tab.
 
-> **NOTE**: the same plugin (identifiable by the **Plugin Name**) can be deployed multiple times: each deployment must have a different **Plugin Instance**. For all information, please refer to [this page](https://doc.linkurious.com/admin-manual/latest/plugins/) of the Linkurious Enterprise documentation
+> **NOTE**: the same plugin (identifiable by the **Plugin Name**) can be deployed multiple times: each deployment will have a different **Plugin Instance** and the same version. It is not possible to have multiple versions of the same plugin running at the same time. For all information, please refer to [this page](https://doc.linkurious.com/admin-manual/latest/plugins/) of the Linkurious Enterprise documentation
 
 A `RESTART` button is also present in this tab. By clicking on it, all the plugins (including the Plugin Manager itself) will be restarted. As a result, plugins will be temporarily unavailable: please, do not refresh the page during the plugins restart operation.
 ## Manage Plugins tab
@@ -58,13 +58,10 @@ The following information is available for each available plugin:
 - **Package**: the name of the plugin archive;
 - **Plugin Name**: the name of the plugin as defined by developers;
 - **Version**: the version of the plugin;
-- **Plugin Instance**: the endpoint to which the plugin is available; clicking on it provides quick access to the plugin
-- **State**: a tag describing if the plugin is enabled or not;
+- **State**: describes if the plugin is enabled or not;
 - **Manage**: the managing panel for the plugin. For each available plugin (except for the Plugin Manager itself), an admin can:
   - **Enable**/**Disable** the plugin: the state of the plugin will be switched from `ENABLED` to `DISABLED` or vice-versa. A `DISABLED` plugin is not deployed at the next plugins restart;
-  - **Remove** the plugin: the plugin will be removed from the available plugin and a copy of the package will be created in the **Recycle Bin** (see the next section for more details); it's not possible to remove a `DISABLED` plugin. A removed plugin is not deployed at the next plugins restart.
-
-> **NOTE**: the same plugin (identifiable by the **Plugin Name**) can be deployed multiple times: each deployment must have a different **Plugin Instance**. For all information, please refer to [this page](https://doc.linkurious.com/admin-manual/latest/plugins/) of the Linkurious Enterprise documentation
+  - **Remove** the plugin: the plugin will be moved to the **Recycle Bin** and not deployed at the next plugins restart (see the next section for more details); it's not possible to remove a `DISABLED` plugin, you should activate it first.
 
 A `RESTART` button is also present in this tab. By clicking on it, all the plugins (including the Plugin Manager itself) will be restarted. As a result, plugins will be temporarily unavailable: please, do not refresh the page during the plugins restart operation.
 
@@ -76,11 +73,11 @@ In the same tab, admins can install new plugins: by clicking on the `ADD` button
 
 Here, admins can:
 - select one of the Linkurious Enterprise official plugins;
-- upload a valid plugin package;
+- upload a valid plugin package: a standard naming convention will be used for the package; it includes the plugin name and its version as they are defined in the plugin manifest.
 
 By clicking on the `Install` button, the selected plugin will be installed and set as `ENABLED`.
 
-> **NOTE**: after installing a new plugin, you need to click the `RESTART` button to deploy it.
+> **NOTE**: after installing a new plugin, you need to click the `RESTART` button to deploy it. Also, check on the plugin documentation for eventual mandatory (or optional) configurations required to correctly use the plugin.
 
 ## Recycle Bin tab
 
@@ -88,7 +85,7 @@ This is the tab listing all the removed plugins in the Linkurious Enterprise ins
 
 ![Recycle Bin tab](/doc-assets/recycle-bin.png)
 
-Plugins can be removed manually by an admin (by clicking its `Remove` button in the **Manage Plugins** tab) or automatically by the Plugin Manager (in case a plugin with the same name as another `ENABLED` plugin is installed: the Plugin Manager will remove the currently `ENABLED` plugin and replace it with the newly installed)
+Plugins can be removed manually by an admin (by clicking its `Remove` button in the **Manage Plugins** tab) or automatically by the Plugin Manager (in case a plugin with the same name as another `ENABLED` plugin is installed: the Plugin Manager will remove the currently `ENABLED` plugin and replace it with the newly installed).
 
 The following information is available for each removed plugin:
 
@@ -105,7 +102,7 @@ The Plugin Manager also provides a set of custom APIs for managing plugins.
 
 As well as for use via the user interface, use of these APIs is restricted to users who are members of the `admin` group.
 
->**NOTE**: These API must use the Plugin Manager basePath as endpoint\
+>**NOTE**: These APIs must use the Plugin Manager basePath as endpoint\
  (e.g. `https://127.0.0.1:3000/plugins/plugin-manager/api/plugins`) 
 
 
@@ -119,17 +116,17 @@ Type: `GET`
 /api/plugins
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `filter` *optional* | string | Type of the plugin.<br>Allowed values: `available` , `deployed`, `enabled`, `disabled`, `recyclebin` |
+| `filter` *optional* | string | Type of the plugin.<br>Allowed values: `available` , `deployed`, `enabled` (*default*), `disabled`, `recyclebin` |
 
-### Success 200
+**Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` |  |  |
+| `results` | map | A map of plugins package names and their [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") |
 
 ---
 ## Get Manifest
@@ -142,17 +139,17 @@ Type: `GET`
 /api/plugin/:fileName
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin |
+| `fileName`  | string | The name of the plugin package |
 
-### Success 200
+**Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` |  |  |
+| `results` | json  | The [manifest](https://docs.google.com/document/d/1rzs2mn757MGlLVYt7xfCkCwcIpwJ_57uvWK5pDSgEV4/edit#heading=h.iltjjscmj0ni "Plugins documentation: manifest file") of the selected plugin |
 
 ---
 ## Install an official Plugin
@@ -165,17 +162,40 @@ Type: `POST`
 /api/install-available/:pluginName
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `pluginName`  | string | The name of the plugin |
 
-### Success 200
+**Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` |  |  |
+| `fileName` | string | The package name generated by the plugin |
+
+---
+## Upload a Plugin
+
+Upload and install a Linkurious Enterprise plugin
+
+Type: `POST`
+
+```url
+/api/upload
+```
+
+**Parameters**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `plugin`  | file | The file (an archive) containing the plugin to be installed |
+
+**Success 200**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `fileName` | string | The package name generated by the plugin |
 
 ---
 ## Disable a Plugin
@@ -188,17 +208,17 @@ Type: `PATCH`
 /api/plugin/:fileName/disable
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin |
+| `fileName`  | string | The name of the plugin package |
 
-### Success 200
+**Success**
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `results` |  |  |
+```java
+HTTP/1.1 204 No Content
+```
 
 ---
 ## Enable a Plugin
@@ -211,17 +231,17 @@ Type: `PATCH`
 /api/plugin/:fileName/enable
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin |
+| `fileName`  | string | The name of the plugin package |
 
-### Success 200
+**Success**
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `results` |  |  |
+```java
+HTTP/1.1 204 No Content
+```
 
 ---
 ## Restore a Plugin
@@ -234,17 +254,17 @@ Type: `PATCH`
 /api/plugin/:fileName/restore
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin |
+| `fileName`  | string | The name of the plugin package |
 
-### Success 200
+**Success**
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `results` |  |  |
+```java
+HTTP/1.1 204 No Content
+```
 
 ---
 ## Remove a Plugin
@@ -257,17 +277,39 @@ Type: `DELETE`
 /api/plugin/:fileName
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `fileName`  | string | The name of the plugin |
+| `fileName`  | string | The name of the plugin package |
 
-### Success 200
+**Success**
+
+```java
+HTTP/1.1 204 No Content
+```
+---
+## Purge
+
+Purge a specific folder
+
+Type: `DELETE`
+
+```url
+/api/purge
+```
+
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` |  |  |
+| `filter`  | string | The folder to purge.<br>Allowed values: `disabled`, `recyclebin` |
+
+**Success**
+
+```java
+HTTP/1.1 204 No Content
+```
 
 ---
 ## Stream plugin logs
@@ -280,17 +322,17 @@ Type: `GET`
 /api/logs/:pluginInstance
 ```
 
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `pluginInstance`  | string | The instance name of the plugin |
 
-### Success 200
+**Success 200**
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `results` |  |  |
+| `stream`  | string | A text stream with the latest logs of the plugin |
 
 # Limitations
 

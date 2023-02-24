@@ -1,6 +1,6 @@
 {
   "name": "@linkurious/lke-plugin-plugin-manager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Plugin Manager for Linkurious Enterprise",
   "homepage": "https://github.com/Linkurious/lke-plugin-plugin-manager#readme",
   "bugs": {

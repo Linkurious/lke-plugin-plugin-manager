@@ -76,7 +76,7 @@ body {
   width: 100%;
   min-width: 1024px;
   position: absolute;
-  z-index: 1;
+  display: none;
   top: 2.75em;
   left: 0;
   padding: 1.618rem;
@@ -101,9 +101,10 @@ body {
 }
 
 .tab-switch:checked+label+.tab-content {
-  z-index: 2;
+  display: block;
   opacity: 1;
   transition: all 0.35s;
+  margin-bottom: 20px;
 }
 
 #hiding-menu {
@@ -314,7 +315,6 @@ input {
   transform: translate(-50%);
 }
 
-/* (C) SHOW & HIDE */
 #spinner {
   visibility: hidden;
   opacity: 0;

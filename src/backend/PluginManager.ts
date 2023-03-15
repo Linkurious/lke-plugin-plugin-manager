@@ -2,7 +2,6 @@ import path = require('path');
 import {Readable} from 'stream';
 
 import fs = require('fs-extra');
-import {glob} from 'glob';
 import fileUpload = require('express-fileupload');
 
 import {Manifest, PluginParser} from './PluginParser';
@@ -134,20 +133,24 @@ export class PluginManager {
   public async getListOfPlugins(
     folder: PluginDeploymentStatus = PluginDeploymentStatus.ENABLED
   ): Promise<Record<string, Manifest>> {
-    if (folder === PluginDeploymentStatus.AVAILABLE && !this.lkeRoot) {
+    if (
+      folder === PluginDeploymentStatus.AVAILABLE &&
+      (!this.lkeRoot || !fs.existsSync(this.getPath(PluginDeploymentStatus.AVAILABLE)))
+    ) {
       return {};
     }
 
+    const basePath = this.getPath(folder);
     const plugins = {} as Record<string, Manifest>;
-    for (const plugin of glob.sync(
-      path.join(this.getPath(folder), folder === PluginDeploymentStatus.DEPLOYED ? '*' : '*.lke')
-    )) {
-      const fileName = path.basename(plugin);
-      const pluginParser = new PluginParser(plugin);
-      if (await pluginParser.parse()) {
-        plugins[fileName] = pluginParser.manifest!;
-      } else {
-        console.warn(`Found ${fileName} but it's not a valid plugin:`, pluginParser.error);
+    for (const pluginFileName of fs.readdirSync(basePath)) {
+      if (folder === PluginDeploymentStatus.DEPLOYED || pluginFileName.endsWith('.lke')) {
+        const filePath = path.join(basePath, pluginFileName);
+        const pluginParser = new PluginParser(filePath);
+        if (await pluginParser.parse()) {
+          plugins[pluginFileName] = pluginParser.manifest!;
+        } else {
+          console.warn(`Found ${pluginFileName} but it's not a valid plugin:`, pluginParser.error);
+        }
       }
     }
     return plugins;

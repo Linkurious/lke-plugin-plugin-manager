@@ -143,14 +143,6 @@ export class ManifestNotFoundPluginError extends PluginError {
   }
 }
 
-export class MultipleManifestsFoundPluginError extends PluginError {
-  constructor() {
-    super('The file is not a valid plugin format: multiple `manifest.json` found.');
-    this.httpResponseCode = 400;
-    this.name = ErrorType.INVALID_PLUGIN;
-  }
-}
-
 export class MalformedManifestPluginError extends PluginError {
   constructor() {
     super('Error while parsing the `manifest.json` file, specify a valid JSON object.');

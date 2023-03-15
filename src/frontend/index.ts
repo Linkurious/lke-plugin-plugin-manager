@@ -311,6 +311,8 @@ async function changeState(row: HTMLTableRowElement) {
         state.classList.toggle('tag-disabled');
         stateButton.textContent = 'Enable';
         removeButton.disabled = true;
+        void managePlugins();
+        showPopup('info', 'Plugin state changed correctly.');
       } else {
         showPopup('error', await request.text());
       }
@@ -322,17 +324,16 @@ async function changeState(row: HTMLTableRowElement) {
         state.classList.toggle('tag-disabled');
         stateButton.textContent = 'Disable';
         removeButton.disabled = false;
-        managePlugins();
-        stopWaiting();
+        void managePlugins();
         showPopup('info', 'Plugin state changed correctly.');
       } else {
-        stopWaiting();
         showPopup('error', await request.text());
       }
     }
   } catch (error) {
-    stopWaiting();
     showPopup('error', error instanceof Error ? error.message : JSON.stringify(error));
+  } finally {
+    stopWaiting();
   }
 }
 

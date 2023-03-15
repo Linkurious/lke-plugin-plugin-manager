@@ -4,7 +4,6 @@ import {Duplex, Readable} from 'stream';
 import {pipeline} from 'stream/promises';
 
 import tar = require('tar');
-import {glob} from 'glob';
 
 import {
   AlreadyParsedPluginError,
@@ -12,7 +11,6 @@ import {
   InvalidSourcePluginError,
   MalformedManifestPluginError,
   ManifestNotFoundPluginError,
-  MultipleManifestsFoundPluginError,
   PathNotFoundPluginError,
   PluginError
 } from './exceptions';
@@ -36,7 +34,6 @@ export interface Manifest {
 export class PluginParser {
   private _pluginSource: string | Readable | Buffer;
   private _parsed = false;
-  private _numberOfManifestFiles: number;
   private _manifest: Manifest | null;
   private _error: PluginError | undefined;
 
@@ -59,7 +56,6 @@ export class PluginParser {
 
   constructor(pluginSource: PluginSource) {
     this._parsed = false;
-    this._numberOfManifestFiles = 0;
     this._manifest = null;
     this._pluginSource = pluginSource;
   }
@@ -111,20 +107,26 @@ export class PluginParser {
    */
   public async parse(): Promise<boolean> {
     try {
-      let manifestBufferPromise: Promise<Buffer> | undefined;
+      const manifestBufferPromise: Promise<{root: boolean; buffer: Buffer}>[] = [];
 
       if (this._parsed) {
         this._error = new AlreadyParsedPluginError();
         return false;
       }
 
+      /*
+        The stream can be either a folder or a stream from a *.lke plugin.
+        The acceptable structures are:
+        1. the plugin files (including the manifest.json) in the root
+        2. (only for archives) the plugin files can be in a subfolder (e.g. `npm pack` creates `package`)
+      */
       const pluginStream = this.getPluginStream();
       if (pluginStream === undefined) {
         // Plugin not found
         return false;
       }
 
-      if (pluginStream) {
+      if (pluginStream !== null) {
         // Plugin file
         await pipeline(
           pluginStream!,
@@ -132,11 +134,14 @@ export class PluginParser {
             .t({
               filter: (p) => {
                 const parsedPath = path.parse(p);
+                const pathDirs = parsedPath.dir.split(path.sep);
 
-                if (
-                  parsedPath.base === 'manifest.json' &&
-                  parsedPath.dir.split(path.sep).length <= 1
-                ) {
+                if (pathDirs.length > 1) {
+                  // Not looking in the sub directories
+                  return false;
+                }
+
+                if (parsedPath.base === 'manifest.json') {
                   return true;
                 }
 
@@ -144,41 +149,46 @@ export class PluginParser {
               }
             })
             .on('entry', (entry) => {
-              if (this._numberOfManifestFiles === 0) {
-                manifestBufferPromise = entry.concat();
-              }
-              this._numberOfManifestFiles++;
+              const dir = path.dirname(entry.path);
+
+              manifestBufferPromise.push(
+                entry.concat().then((b: Buffer) => ({root: dir === '.', buffer: b}))
+              );
             })
         );
       } else {
         // Plugin folder
-        for (const fileName of ([] as string[]).concat(
-          glob.sync(path.join(this._pluginSource as string, 'manifest.json')),
-          glob.sync(path.join(this._pluginSource as string, '*', 'manifest.json'))
-        )) {
-          if (this._numberOfManifestFiles === 0) {
-            manifestBufferPromise = Promise.resolve(fs.readFileSync(fileName));
+        const basePath = this._pluginSource as string;
+        for (const file of fs.readdirSync(basePath, {withFileTypes: true})) {
+          if (file.name === 'manifest.json' && file.isFile()) {
+            manifestBufferPromise.push(
+              Promise.resolve({
+                root: true,
+                buffer: fs.readFileSync(path.join(basePath, file.name))
+              })
+            );
+            break;
           }
-
-          this._numberOfManifestFiles++;
         }
       }
 
-      if (manifestBufferPromise === undefined) {
+      if (manifestBufferPromise.length === 0) {
         this._error = new ManifestNotFoundPluginError();
         return false;
       }
 
       // Avoid unhandled promises
-      const manifestBuffer = await manifestBufferPromise;
+      const manifestBuffer = await Promise.all(manifestBufferPromise);
 
-      if (this._numberOfManifestFiles > 1) {
-        this._error = new MultipleManifestsFoundPluginError();
-        return false;
+      // Get the index from the root
+      let manifestIndex = manifestBuffer.findIndex((e) => e.root);
+      // If not found, get the last found index
+      if (manifestIndex < 0) {
+        manifestIndex = manifestBuffer.length - 1;
       }
 
       try {
-        this._manifest = JSON.parse(manifestBuffer.toString()) as Manifest;
+        this._manifest = JSON.parse(manifestBuffer[manifestIndex].buffer.toString()) as Manifest;
       } catch (err) {
         console.error(err);
         this._manifest = null;

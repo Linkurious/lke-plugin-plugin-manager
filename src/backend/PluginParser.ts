@@ -107,7 +107,7 @@ export class PluginParser {
    */
   public async parse(): Promise<boolean> {
     try {
-      const manifestBufferPromise: Promise<Buffer>[] = [];
+      const manifestBufferPromise: Promise<{root: boolean; buffer: Buffer}>[] = [];
 
       if (this._parsed) {
         this._error = new AlreadyParsedPluginError();
@@ -118,7 +118,7 @@ export class PluginParser {
         The stream can be either a folder or a stream from a *.lke plugin.
         The acceptable structures are:
         1. the plugin files (including the manifest.json) in the root
-        2. a `package` subfolder (typical when using `npm pack`)
+        2. (only for archives) the plugin files can be in a subfolder (e.g. `npm pack` creates `package`)
       */
       const pluginStream = this.getPluginStream();
       if (pluginStream === undefined) {
@@ -139,9 +139,6 @@ export class PluginParser {
                 if (pathDirs.length > 1) {
                   // Not looking in the sub directories
                   return false;
-                } else if (pathDirs.length === 1 && pathDirs[0] !== 'package') {
-                  // The only acceptable structure is /package/*
-                  return false;
                 }
 
                 if (parsedPath.base === 'manifest.json') {
@@ -152,29 +149,23 @@ export class PluginParser {
               }
             })
             .on('entry', (entry) => {
-              manifestBufferPromise.push(entry.concat());
+              const dir = path.dirname(entry.path);
+
+              manifestBufferPromise.push(
+                entry.concat().then((b: Buffer) => ({root: dir === '.', buffer: b}))
+              );
             })
         );
       } else {
         // Plugin folder
         const basePath = this._pluginSource as string;
         for (const file of fs.readdirSync(basePath, {withFileTypes: true})) {
-          // Read like a stream, folders first
-          if (file.isDirectory() && file.name === 'package') {
-            for (const subFile of fs.readdirSync(path.join(basePath, file.name), {
-              withFileTypes: true
-            })) {
-              if (subFile.name === 'manifest.json' && subFile.isFile()) {
-                manifestBufferPromise.push(
-                  Promise.resolve(fs.readFileSync(path.join(basePath, file.name, subFile.name)))
-                );
-                break;
-              }
-            }
-            break;
-          } else if (file.name === 'manifest.json' && file.isFile()) {
+          if (file.name === 'manifest.json' && file.isFile()) {
             manifestBufferPromise.push(
-              Promise.resolve(fs.readFileSync(path.join(basePath, file.name)))
+              Promise.resolve({
+                root: true,
+                buffer: fs.readFileSync(path.join(basePath, file.name))
+              })
             );
             break;
           }
@@ -189,11 +180,15 @@ export class PluginParser {
       // Avoid unhandled promises
       const manifestBuffer = await Promise.all(manifestBufferPromise);
 
-      // In case of multiple files, take the last file (due the stream, it's the one in the root)
+      // Get the index from the root
+      let manifestIndex = manifestBuffer.findIndex((e) => e.root);
+      // If not found, get the last found index
+      if (manifestIndex < 0) {
+        manifestIndex = manifestBuffer.length - 1;
+      }
+
       try {
-        this._manifest = JSON.parse(
-          manifestBuffer[manifestBuffer.length - 1].toString()
-        ) as Manifest;
+        this._manifest = JSON.parse(manifestBuffer[manifestIndex].buffer.toString()) as Manifest;
       } catch (err) {
         console.error(err);
         this._manifest = null;

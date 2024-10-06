@@ -69,7 +69,7 @@
     "acorn": "8.8.1",
     "esbuild": "0.16.17",
     "eslint": "8.32.0",
-    "eslint-config-prettier": "8.6.0",
+    "eslint-config-prettier": "8.10.0",
     "eslint-plugin-import": "2.27.4",
     "eslint-plugin-prettier": "4.2.1",
     "typescript": "4.9.4"

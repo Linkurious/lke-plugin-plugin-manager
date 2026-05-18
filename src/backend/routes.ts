@@ -174,7 +174,7 @@ export = async function configureRoutes(
   options.router.post(
     '/install-available/:pluginName',
     handleRequest(async (req) => {
-      return await manager.installAvailablePlugin(req.params.pluginName);
+      return await manager.installAvailablePlugin(assertString(req.params.pluginName));
     })
   );
 
@@ -217,7 +217,7 @@ export = async function configureRoutes(
   options.router.get(
     '/plugin/:fileName',
     handleRequest(async (req) => {
-      return await manager.getPluginManifest(req.params.fileName, true);
+      return await manager.getPluginManifest(assertString(req.params.fileName), true);
     })
   );
 
@@ -229,7 +229,7 @@ export = async function configureRoutes(
   options.router.patch(
     '/plugin/:fileName/disable',
     handleRequest(async (req) => {
-      return await manager.disablePlugin(req.params.fileName);
+      return await manager.disablePlugin(assertString(req.params.fileName));
     })
   );
 
@@ -241,7 +241,7 @@ export = async function configureRoutes(
   options.router.patch(
     '/plugin/:fileName/enable',
     handleRequest(async (req) => {
-      return await manager.enablePlugin(req.params.fileName);
+      return await manager.enablePlugin(assertString(req.params.fileName));
     })
   );
 
@@ -253,7 +253,7 @@ export = async function configureRoutes(
   options.router.patch(
     '/plugin/:fileName/restore',
     handleRequest(async (req) => {
-      return await manager.restorePlugin(req.params.fileName);
+      return await manager.restorePlugin(assertString(req.params.fileName));
     })
   );
 
@@ -265,7 +265,7 @@ export = async function configureRoutes(
   options.router.delete(
     '/plugin/:fileName',
     handleRequest(async (req) => {
-      return await manager.deletePlugin(req.params.fileName);
+      return await manager.deletePlugin(assertString(req.params.fileName));
     })
   );
 
@@ -301,8 +301,15 @@ export = async function configureRoutes(
   options.router.get(
     '/logs/:pluginInstance',
     handleRequest((req, res) => {
-      manager.getLogs(req.params.pluginInstance).pipe(res);
+      manager.getLogs(assertString(req.params.pluginInstance)).pipe(res);
       return CUSTOM_RESPONSE;
     })
   );
 };
+
+function assertString(value: string | string[] | undefined): string {
+  if (typeof value !== 'string') {
+    throw new ParameterExceptionPluginError('param', value, ['string'], false);
+  }
+  return value;
+}

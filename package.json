@@ -1,6 +1,6 @@
 {
   "name": "@linkurious/lke-plugin-plugin-manager",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Plugin Manager for Linkurious Enterprise",
   "homepage": "https://github.com/Linkurious/lke-plugin-plugin-manager#readme",
   "bugs": {
@@ -59,7 +59,7 @@
     "tar": "6.1.12"
   },
   "devDependencies": {
-    "@linkurious/rest-client": "3.1.14",
+    "@linkurious/rest-client": "4.3.5",
     "@types/express": "4.17.3",
     "@types/express-fileupload": "1.4.1",
     "@types/node": "16.18.11",

@@ -1,0 +1,12 @@
+{
+  "i18n": {
+    "it": {
+      "title": "Gestore plugin",
+      "description": "Gestisci facilmente i plugin di Linkurious Enterprise."
+    },
+    "es": {
+      "title": "Administrador de plugins",
+      "description": "Administra fácilmente los plugins de Linkurious Enterprise."
+    }
+  }
+}

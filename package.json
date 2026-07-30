@@ -42,6 +42,7 @@
   "files": [
     "backend",
     "public",
+    "manifest.2.json",
     "manifest.json",
     "LICENSE"
   ],
